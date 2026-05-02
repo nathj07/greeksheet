@@ -2,18 +2,20 @@
 
 A command-line tool that turns a plain-text file of Greek New Testament verses
 into a formatted Google Sheet for translation practice. Each verse gets a row
-of Greek words followed by blank rows for interlinear (word-by-word) and
-free-translation work, plus cells for commentary and general notes.
+of Greek words followed by two per-word rows for parsing and word-choice work,
+then merged rows for assembling an intermediary reading, writing the final
+translation, and adding commentary and general notes.
 
 ## What it produces
 
-For each verse the sheet contains five rows:
+For each verse the sheet contains six rows:
 
 | Row label | Colour | Purpose |
 |-----------|--------|---------|
 | *(verse number + words)* | Grey | The Greek text, one word per cell |
-| **I** | Orange | Interlinear — write a word-by-word gloss under each Greek word |
-| **T** | Green | Translation — write your full English translation |
+| *(unlabelled × 2)* | *(plain)* | Per-word parsing and individual word-choice work — one cell per Greek word |
+| **I** | Orange | Intermediary — assemble your word choices into a coherent verse; merged across all word columns |
+| **T** | Green | Final translation — write your polished English translation; merged across all word columns |
 | **C** | *(plain)* | Commentary notes, merged across all word columns |
 | **N** | *(plain)* | General notes, merged across all word columns |
 

@@ -70,11 +70,15 @@ func TestBuildSheetData_verseBlock(t *testing.T) {
 	sections := []section{{verses: []verse{{num: "1", words: []string{"word", "two"}}}}}
 	d := buildSheetData(sections)
 
-	// verse row + 2 spacers + I + T + C + N = 7 rows
+	// verse row + 2 parsing rows + I + T + C + N = 7 rows
 	assert.Len(t, d.rows, 7)
 
 	// Verse row: num then words
 	assert.Equal(t, []any{"1", "word", "two"}, d.rows[0])
+
+	// Parsing rows are unlabelled (empty first cell) and span all word columns
+	assert.Equal(t, any(nil), d.rows[1][0])
+	assert.Equal(t, any(nil), d.rows[2][0])
 
 	// I row label
 	assert.Equal(t, "I", d.rows[3][0])

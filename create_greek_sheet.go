@@ -191,8 +191,9 @@ func buildSheetData(sections []section) sheetData {
 		d.rows = append(d.rows, row)
 		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colGrey))
 
-		// Two blank spacer rows keep the verse visually separated from practice rows
-		d.rows = append(d.rows, []any{}, []any{})
+		// Two unlabelled rows for parsing and building word choices — one cell per
+		// Greek word so each word's work sits directly beneath it.
+		d.rows = append(d.rows, make([]any, 1+wordCount), make([]any, 1+wordCount))
 
 		// I row — single merged cell for interlinear practice
 		r = int64(len(d.rows))
