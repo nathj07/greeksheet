@@ -20,8 +20,8 @@ Example input file (e.g. practice.txt):
 
 Usage:
 
-	go run create_greek_sheet.go practice.txt
-	go run create_greek_sheet.go -title "My Practice Sheet" practice.txt
+	go run create_greek_sheet.go -input practice.txt
+	go run create_greek_sheet.go -input practice.txt -title "My Practice Sheet"
 */
 package main
 
@@ -496,18 +496,19 @@ func main() {
 
 func start(args []string) error {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
+	inputFile   := flags.String("input", "", "Path to the input text file of Greek verses (required)")
 	title       := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename)")
 	secretsFile := flags.String("secrets", "client_secret.json", "Path to the Google OAuth2 client secrets JSON file")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
 
-	if flags.NArg() == 0 {
-		return fmt.Errorf("usage: %s [-title <name>] [-secrets <path>] <input-file>", args[0])
+	if *inputFile == "" {
+		return fmt.Errorf("usage: %s -input <file> [-title <name>] [-secrets <path>]", args[0])
 	}
 
 	conf := config{
-		InputFile:   flags.Arg(0),
+		InputFile:   *inputFile,
 		Title:       *title,
 		SecretsFile: *secretsFile,
 	}

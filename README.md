@@ -72,34 +72,35 @@ are handled correctly.
 ## Usage
 
 ```
-go run create_greek_sheet.go [flags] <input-file>
+go run create_greek_sheet.go [flags]
 ```
 
 Or build first and then run the binary:
 
 ```
 go build -o greeksheet .
-./greeksheet [flags] <input-file>
+./greeksheet [flags]
 ```
 
 ### Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
+| `-input` | *(required)* | Path to the input text file of Greek verses |
 | `-title` | input filename (without extension) | Title of the new Google Sheet |
 | `-secrets` | `client_secret.json` | Path to your OAuth 2.0 client secrets file |
 
 ### Examples
 
 ```bash
-# Use all defaults — sheet title matches the filename
-go run create_greek_sheet.go practice.txt
+# Minimal — sheet title defaults to the filename
+go run create_greek_sheet.go -input practice.txt
 
 # Set a custom title
-go run create_greek_sheet.go -title "1 Corinthians — Week 3" practice.txt
+go run create_greek_sheet.go -input practice.txt -title "1 Corinthians — Week 3"
 
 # Secrets file lives somewhere else
-go run create_greek_sheet.go -secrets ~/keys/my_secret.json practice.txt
+go run create_greek_sheet.go -input practice.txt -secrets ~/keys/my_secret.json
 ```
 
 ## Output
