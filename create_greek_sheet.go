@@ -194,19 +194,25 @@ func buildSheetData(sections []section) sheetData {
 		// Two blank spacer rows keep the verse visually separated from practice rows
 		d.rows = append(d.rows, []any{}, []any{})
 
-		// I row — empty cells for interlinear word-by-word translation
+		// I row — single merged cell for interlinear practice
 		r = int64(len(d.rows))
 		iRow := make([]any, 1+wordCount)
 		iRow[0] = "I"
 		d.rows = append(d.rows, iRow)
 		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colOrange))
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
 
-		// T row — empty cells for full translation practice
+		// T row — single merged cell for full translation practice
 		r = int64(len(d.rows))
 		tRow := make([]any, 1+wordCount)
 		tRow[0] = "T"
 		d.rows = append(d.rows, tRow)
 		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colGreen))
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
 
 		// C row — single merged cell for commentary notes
 		r = int64(len(d.rows))

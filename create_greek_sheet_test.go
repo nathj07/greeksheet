@@ -83,5 +83,5 @@ func TestBuildSheetData_verseBlock(t *testing.T) {
 	assert.Equal(t, "T", d.rows[4][0])
 
 	// C and N are merged (2 words → merge requested)
-	assert.Len(t, d.mergeReqs, 2)
+	assert.Len(t, d.mergeReqs, 4) // I, T, C, N rows all get merged cells
 }
