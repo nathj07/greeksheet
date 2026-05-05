@@ -57,6 +57,54 @@ func TestParseInputFile(t *testing.T) {
 	assert.Equal(t, "1", sections[3].verses[0].num)
 }
 
+func TestDeriveTabName(t *testing.T) {
+	f := func(sections []section, expected string) {
+		t.Helper()
+		assert.Equal(t, expected, deriveTabName(sections))
+	}
+
+	t.Run("single_chapter", func(t *testing.T) {
+		f([]section{
+			{heading: "1 Corinthians 13"},
+			{verses: []verse{{num: "1"}, {num: "13"}}},
+		}, "13:1 - 13:13")
+	})
+
+	t.Run("multi_chapter", func(t *testing.T) {
+		f([]section{
+			{heading: "1 Corinthians 13"},
+			{verses: []verse{{num: "1"}, {num: "13"}}},
+			{heading: "1 Corinthians 14"},
+			{verses: []verse{{num: "1"}, {num: "40"}}},
+		}, "13:1 - 14:40")
+	})
+
+	t.Run("no_heading", func(t *testing.T) {
+		f([]section{
+			{verses: []verse{{num: "3"}, {num: "7"}}},
+		}, "1:3 - 1:7")
+	})
+
+	t.Run("no_verses", func(t *testing.T) {
+		f([]section{{heading: "Romans 1"}}, "sheet")
+	})
+
+	t.Run("single_verse", func(t *testing.T) {
+		f([]section{
+			{heading: "John 3"},
+			{verses: []verse{{num: "16"}}},
+		}, "3:16")
+	})
+
+	t.Run("heading_without_trailing_number", func(t *testing.T) {
+		// Headings like "Romans" have no trailing chapter digit; chapter defaults to "1".
+		f([]section{
+			{heading: "Romans"},
+			{verses: []verse{{num: "1"}, {num: "32"}}},
+		}, "1:1 - 1:32")
+	})
+}
+
 func TestBuildSheetData_headingRow(t *testing.T) {
 	sections := []section{{heading: "1 Corinthians 13"}}
 	d := buildSheetData(sections)
