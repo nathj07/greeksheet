@@ -22,6 +22,8 @@ For each verse the sheet contains six rows:
 Section headings (lines beginning with `#` in the input file) appear as bold
 label rows that group the verses beneath them.
 
+All text is set at 12 pt for comfortable reading of Greek characters.
+
 ## Prerequisites
 
 - Go 1.21 or later
@@ -87,20 +89,43 @@ go build -o greeksheet .
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-input` | *(required)* | Path to the input text file of Greek verses |
-| `-title` | input filename (without extension) | Title of the new Google Sheet |
+| `-title` | input filename (without extension) | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
+| `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to |
 | `-secrets` | `client_secret.json` | Path to your OAuth 2.0 client secrets file |
+
+### Finding a spreadsheet ID
+
+The spreadsheet ID is the long string of letters and numbers in the Google
+Sheets URL, between `/d/` and the next `/`:
+
+```
+https://docs.google.com/spreadsheets/d/<ID STRING IS HERE>/edit
+```
+
+Copy everything between `/d/` and `/edit` (or the next `/`) and pass it as
+`-sheet-id`.
+
+### Tab naming
+
+Whether creating a new sheet or adding a tab to an existing one, the tab is
+named automatically from the verse range in the input file — for example,
+`13:1 - 14:40` for content spanning chapters 13 and 14. There is no need to
+supply a tab name manually.
 
 ### Examples
 
 ```bash
-# Minimal — sheet title defaults to the filename
-go run create_greek_sheet.go -input practice.txt
+# Minimal — creates a new spreadsheet; tab named from the verse range
+go run create_greek_sheet.go -input 1cor13.txt
 
-# Set a custom title
-go run create_greek_sheet.go -input practice.txt -title "1 Corinthians — Week 3"
+# Set a custom title for the spreadsheet document
+go run create_greek_sheet.go -input 1cor13.txt -title "1 Corinthians study"
+
+# Add a new tab to an existing spreadsheet
+go run create_greek_sheet.go -input 1cor14.txt -sheet-id <ID STRING FROM URU OF EXISTING SHEET>
 
 # Secrets file lives somewhere else
-go run create_greek_sheet.go -input practice.txt -secrets ~/keys/my_secret.json
+go run create_greek_sheet.go -input 1cor13.txt -secrets ~/keys/my_secret.json
 ```
 
 ## Output
@@ -108,7 +133,7 @@ go run create_greek_sheet.go -input practice.txt -secrets ~/keys/my_secret.json
 The tool prints progress as it runs:
 
 ```
-Parsed 13 verses from 'practice.txt'
+Parsed 13 verses from '1cor13.txt'
 Authenticating with Google…
 Opening browser for Google authentication…
 Created: https://docs.google.com/spreadsheets/d/<sheet-id>
@@ -118,6 +143,9 @@ Formatting applied.
 Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
 ```
+
+When adding a tab to an existing sheet the output is similar, but shows
+`Added tab '13:1 - 13:13' to …` instead of `Created: …`.
 
 The sheet is automatically shared with "anyone with the link can edit", so you
 can open it on any device without extra steps.
