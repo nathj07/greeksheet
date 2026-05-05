@@ -122,7 +122,7 @@ go run create_greek_sheet.go -input 1cor13.txt
 go run create_greek_sheet.go -input 1cor13.txt -title "1 Corinthians study"
 
 # Add a new tab to an existing spreadsheet
-go run create_greek_sheet.go -input 1cor14.txt -sheet-id 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
+go run create_greek_sheet.go -input 1cor14.txt -sheet-id <ID STRING FROM URU OF EXISTING SHEET>
 
 # Secrets file lives somewhere else
 go run create_greek_sheet.go -input 1cor13.txt -secrets ~/keys/my_secret.json

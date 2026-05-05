@@ -22,7 +22,7 @@ Usage:
 
 	go run create_greek_sheet.go -input practice.txt
 	go run create_greek_sheet.go -input practice.txt -title "My Practice Sheet"
-	go run create_greek_sheet.go -input practice.txt -sheet-id 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
+	go run create_greek_sheet.go -input practice.txt -sheet-id <ID STRING FROM SHEETS HURL>
 */
 package main
 
@@ -628,10 +628,10 @@ func main() {
 
 func start(args []string) error {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
-	inputFile   := flags.String("input", "", "Path to the input text file of Greek verses (required)")
-	title       := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename)")
+	inputFile := flags.String("input", "", "Path to the input text file of Greek verses (required)")
+	title := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename)")
 	secretsFile := flags.String("secrets", "client_secret.json", "Path to the Google OAuth2 client secrets JSON file")
-	sheetID     := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
+	sheetID := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
