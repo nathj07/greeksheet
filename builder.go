@@ -1,0 +1,207 @@
+package main
+
+import (
+	"fmt"
+	"strings"
+
+	"google.golang.org/api/sheets/v4"
+)
+
+// ---------------------------------------------------------------------------
+// Colours (RGB floats for the Sheets API)
+// ---------------------------------------------------------------------------
+
+type rgbColor struct{ Red, Green, Blue float64 }
+
+func hexToRGB(hex string) rgbColor {
+	hex = strings.TrimPrefix(hex, "#")
+	parse := func(i int) float64 {
+		var v uint8
+		fmt.Sscanf(hex[i:i+2], "%02x", &v)
+		return float64(v) / 255
+	}
+	return rgbColor{Red: parse(0), Green: parse(2), Blue: parse(4)}
+}
+
+var (
+	colGrey   = hexToRGB("d9d9d9") // verse row
+	colOrange = hexToRGB("fce5cd") // I row — interlinear practice
+	colGreen  = hexToRGB("b7e1cd") // T row — translation practice
+)
+
+func toAPIColor(c rgbColor) *sheets.Color {
+	return &sheets.Color{Red: c.Red, Green: c.Green, Blue: c.Blue}
+}
+
+// ---------------------------------------------------------------------------
+// Sheet layout builder
+// ---------------------------------------------------------------------------
+
+type sheetData struct {
+	rows         [][]any
+	bgRequests   []*sheets.Request
+	mergeReqs    []*sheets.Request
+	boldRequests []*sheets.Request
+}
+
+// buildSheetData converts parsed sections into row data and Sheets API
+// formatting requests (backgrounds, merges, bold headings).
+func buildSheetData(sections []section) sheetData {
+	var d sheetData
+
+	addVerseBlock := func(v verse) {
+		wordCount := len(v.words)
+		firstWordCol := int64(1) // column B (0-indexed)
+		lastWordCol := int64(wordCount)
+
+		// Verse row — grey background, verse number in col A then words
+		r := int64(len(d.rows))
+		row := make([]any, 1+wordCount)
+		row[0] = v.num
+		for i, w := range v.words {
+			row[1+i] = w
+		}
+		d.rows = append(d.rows, row)
+		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colGrey))
+
+		// Two unlabelled rows for parsing and building word choices — one cell per
+		// Greek word so each word's work sits directly beneath it.
+		d.rows = append(d.rows, make([]any, 1+wordCount), make([]any, 1+wordCount))
+
+		// I row — single merged cell for interlinear practice
+		r = int64(len(d.rows))
+		iRow := make([]any, 1+wordCount)
+		iRow[0] = "I"
+		d.rows = append(d.rows, iRow)
+		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colOrange))
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
+
+		// T row — single merged cell for full translation practice
+		r = int64(len(d.rows))
+		tRow := make([]any, 1+wordCount)
+		tRow[0] = "T"
+		d.rows = append(d.rows, tRow)
+		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colGreen))
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
+
+		// C row — single merged cell for commentary notes
+		r = int64(len(d.rows))
+		d.rows = append(d.rows, []any{"C"})
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
+
+		// N row — single merged cell for general notes
+		r = int64(len(d.rows))
+		d.rows = append(d.rows, []any{"N"})
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
+	}
+
+	for _, sec := range sections {
+		if sec.heading != "" {
+			r := int64(len(d.rows))
+			d.rows = append(d.rows, []any{sec.heading})
+			d.boldRequests = append(d.boldRequests, boldReq(r, 0, r+1, 1))
+		} else {
+			for _, v := range sec.verses {
+				addVerseBlock(v)
+			}
+		}
+	}
+
+	return d
+}
+
+// ---------------------------------------------------------------------------
+// Sheets API request helpers
+// ---------------------------------------------------------------------------
+
+func gridRange(sr, sc, er, ec int64) *sheets.GridRange {
+	return &sheets.GridRange{
+		SheetId:          0,
+		StartRowIndex:    sr,
+		EndRowIndex:      er,
+		StartColumnIndex: sc,
+		EndColumnIndex:   ec,
+	}
+}
+
+func bgReq(sr, sc, er, ec int64, color rgbColor) *sheets.Request {
+	return &sheets.Request{RepeatCell: &sheets.RepeatCellRequest{
+		Range: gridRange(sr, sc, er, ec),
+		Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{
+			BackgroundColorStyle: &sheets.ColorStyle{RgbColor: toAPIColor(color)},
+		}},
+		Fields: "userEnteredFormat.backgroundColorStyle",
+	}}
+}
+
+func mergeReq(sr, sc, er, ec int64) *sheets.Request {
+	return &sheets.Request{MergeCells: &sheets.MergeCellsRequest{
+		Range:     gridRange(sr, sc, er, ec),
+		MergeType: "MERGE_ALL",
+	}}
+}
+
+func boldReq(sr, sc, er, ec int64) *sheets.Request {
+	return &sheets.Request{RepeatCell: &sheets.RepeatCellRequest{
+		Range: gridRange(sr, sc, er, ec),
+		Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{
+			TextFormat: &sheets.TextFormat{Bold: true},
+		}},
+		Fields: "userEnteredFormat.textFormat.bold",
+	}}
+}
+
+func narrowColAReq(sheetID int64) *sheets.Request {
+	return &sheets.Request{UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
+		Range: &sheets.DimensionRange{
+			SheetId:    sheetID,
+			Dimension:  "COLUMNS",
+			StartIndex: 0,
+			EndIndex:   1,
+		},
+		Properties: &sheets.DimensionProperties{PixelSize: 40},
+		Fields:     "pixelSize",
+	}}
+}
+
+// fontSizeReq sets the font size for all cells on the sheet in a single pass.
+// Using a SheetId-only range (no row/column bounds) covers the entire sheet.
+func fontSizeReq(sheetID int64, size int64) *sheets.Request {
+	return &sheets.Request{RepeatCell: &sheets.RepeatCellRequest{
+		Range: &sheets.GridRange{SheetId: sheetID},
+		Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{
+			TextFormat: &sheets.TextFormat{FontSize: size},
+		}},
+		Fields: "userEnteredFormat.textFormat.fontSize",
+	}}
+}
+
+// patchSheetID rewrites every GridRange.SheetId in d's formatting requests to
+// the given id. This is needed after a tab is created and its real sheetId
+// (assigned by Google) becomes known — buildSheetData uses 0 as a placeholder.
+func patchSheetID(d *sheetData, id int64) {
+	patchReqs := func(reqs []*sheets.Request) {
+		for _, req := range reqs {
+			if req.RepeatCell != nil && req.RepeatCell.Range != nil {
+				req.RepeatCell.Range.SheetId = id
+			}
+			if req.MergeCells != nil && req.MergeCells.Range != nil {
+				req.MergeCells.Range.SheetId = id
+			}
+			if req.UpdateDimensionProperties != nil && req.UpdateDimensionProperties.Range != nil {
+				req.UpdateDimensionProperties.Range.SheetId = id
+			}
+		}
+	}
+	patchReqs(d.bgRequests)
+	patchReqs(d.mergeReqs)
+	patchReqs(d.boldRequests)
+}
