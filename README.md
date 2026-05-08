@@ -1,10 +1,13 @@
 # greeksheet
 
-A command-line tool that turns a plain-text file of Greek New Testament verses
-into a formatted Google Sheet for translation practice. Each verse gets a row
-of Greek words followed by two per-word rows for parsing and word-choice work,
-then merged rows for assembling an intermediary reading, writing the final
-translation, and adding commentary and general notes.
+A command-line tool that builds a formatted Google Sheet for Greek New Testament
+translation practice. It supports two input modes:
+
+- **File mode** (`-input`): read verses from a plain-text file copied from
+  [greekbible.com](https://greekbible.com).
+- **Fetch mode** (`-ref`): fetch Greek text directly from greekbible.com for a
+  reference range such as `"John 1:1-14"` or `"John 1:50-2:10"` — no copy-pasting
+  required.
 
 ## What it produces
 
@@ -19,8 +22,9 @@ For each verse the sheet contains six rows:
 | **C** | *(plain)* | Commentary notes, merged across all word columns |
 | **N** | *(plain)* | General notes, merged across all word columns |
 
-Section headings (lines beginning with `#` in the input file) appear as bold
-label rows that group the verses beneath them.
+Chapter boundaries appear as bold number rows that group the verses beneath
+them. In file mode these come from `#` heading lines; in fetch mode they are
+inserted automatically whenever the chapter changes.
 
 All text is set at 12 pt for comfortable reading of Greek characters.
 
@@ -52,13 +56,15 @@ your behalf. You grant this once by creating an OAuth 2.0 app in Google Cloud:
 > the tab shows "Authentication successful — you can close this tab." and the
 > tool continues automatically.
 
-## Input file format
+## Input modes
+
+### File mode (`-input`)
 
 Create a plain-text file with one or more sections. Lines beginning with `#`
 become bold heading rows in the sheet. All other non-blank lines are treated
-as a block of verses in the inline format used by [greekbible.com](https://greekbible.com)
-— verse number, followed by the words of that verse, followed by the next
-verse number, and so on.
+as a block of verses in the inline format used by greekbible.com — verse
+number, followed by the words of that verse, followed by the next verse number,
+and so on.
 
 ```
 # 1 Corinthians 13
@@ -71,10 +77,32 @@ You can paste text directly from greekbible.com — copy the verse range for a
 chapter and save it as a `.txt` file. Long chapters pasted as a single line
 are handled correctly.
 
+### Fetch mode (`-ref`)
+
+Pass a reference range and the tool fetches the Greek text directly from
+greekbible.com, one verse at a time:
+
+```bash
+# Same-chapter range
+go run . -ref "John 1:1-14" -title "John 1"
+
+# Cross-chapter range — chapter heading inserted automatically
+go run . -ref "John 3:36-4:5" -title "John 3–4"
+
+# Multi-word book name
+go run . -ref "1 Corinthians 13:1-13" -title "1 Cor 13"
+```
+
+The reference format is `"<Book> <chapter>:<verse>-<verse>"` for a same-chapter
+range, or `"<Book> <chapter>:<verse>-<chapter>:<verse>"` for a cross-chapter
+range. Cross-book ranges are not supported.
+
+A small delay is added between requests to avoid hammering the site.
+
 ## Usage
 
 ```
-go run create_greek_sheet.go [flags]
+go run . [flags]
 ```
 
 Or build first and then run the binary:
@@ -84,12 +112,15 @@ go build -o greeksheet .
 ./greeksheet [flags]
 ```
 
+Exactly one of `-input` or `-ref` must be supplied.
+
 ### Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-input` | *(required)* | Path to the input text file of Greek verses |
-| `-title` | input filename (without extension) | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
+| `-input` | | Path to the input text file of Greek verses (**mutually exclusive with `-ref`**) |
+| `-ref` | | Reference range to fetch from greekbible.com, e.g. `"John 1:1-14"` (**mutually exclusive with `-input`**) |
+| `-title` | input filename (without extension), or the ref string | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
 | `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to |
 | `-secrets` | `client_secret.json` | Path to your OAuth 2.0 client secrets file |
 
@@ -107,25 +138,34 @@ Copy everything between `/d/` and `/edit` (or the next `/`) and pass it as
 
 ### Tab naming
 
-Whether creating a new sheet or adding a tab to an existing one, the tab is
-named automatically from the verse range in the input file — for example,
-`13:1 - 14:40` for content spanning chapters 13 and 14. There is no need to
-supply a tab name manually.
+The tab is named automatically from the verse range. In file mode the range is
+derived from the parsed verses (e.g. `13:1 - 14:40`). In fetch mode it comes
+directly from the `-ref` flag (e.g. `1:1 - 1:14`). The book name is omitted
+from the tab label — it typically appears in the spreadsheet title instead.
 
 ### Examples
 
 ```bash
-# Minimal — creates a new spreadsheet; tab named from the verse range
-go run create_greek_sheet.go -input 1cor13.txt
+# File mode — create a new spreadsheet; tab named from the verse range
+go run . -input 1cor13.txt
 
-# Set a custom title for the spreadsheet document
-go run create_greek_sheet.go -input 1cor13.txt -title "1 Corinthians study"
+# File mode — set a custom spreadsheet title
+go run . -input 1cor13.txt -title "1 Corinthians study"
 
-# Add a new tab to an existing spreadsheet
-go run create_greek_sheet.go -input 1cor14.txt -sheet-id <ID STRING FROM URU OF EXISTING SHEET>
+# File mode — add a new tab to an existing spreadsheet
+go run . -input 1cor14.txt -sheet-id <ID FROM URL OF EXISTING SHEET>
+
+# Fetch mode — create a new spreadsheet from a reference range
+go run . -ref "John 1:1-14" -title "John 1"
+
+# Fetch mode — cross-chapter range
+go run . -ref "John 3:36-4:5" -title "John cross-chapter"
+
+# Fetch mode — add a tab to an existing spreadsheet
+go run . -ref "Romans 8:1-17" -title "Romans 8" -sheet-id <ID>
 
 # Secrets file lives somewhere else
-go run create_greek_sheet.go -input 1cor13.txt -secrets ~/keys/my_secret.json
+go run . -input 1cor13.txt -secrets ~/keys/my_secret.json
 ```
 
 ## Output
@@ -133,19 +173,20 @@ go run create_greek_sheet.go -input 1cor13.txt -secrets ~/keys/my_secret.json
 The tool prints progress as it runs:
 
 ```
-Parsed 13 verses from '1cor13.txt'
+Fetching Greek text for "John 1:1-14" from greekbible.com…
+Parsed 14 verses
 Authenticating with Google…
 Opening browser for Google authentication…
 Created: https://docs.google.com/spreadsheets/d/<sheet-id>
-Written 91 rows × 32 cols
+Written 98 rows × 19 cols
 Formatting applied.
 
 Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
 ```
 
-When adding a tab to an existing sheet the output is similar, but shows
-`Added tab '13:1 - 13:13' to …` instead of `Created: …`.
+When adding a tab to an existing sheet the output shows
+`Added tab '1:1 - 1:14' to …` instead of `Created: …`.
 
 The sheet is automatically shared with "anyone with the link can edit", so you
 can open it on any device without extra steps.
