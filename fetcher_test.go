@@ -106,6 +106,46 @@ func TestTabNameFromRef(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// parseChapterRange tests
+// ---------------------------------------------------------------------------
+
+func TestParseChapterRange(t *testing.T) {
+	f := func(input string, want chapterRange, wantErr bool) {
+		t.Helper()
+		got, err := parseChapterRange(input)
+		if wantErr {
+			require.Error(t, err)
+			return
+		}
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	}
+
+	t.Run("simple_range", func(t *testing.T) {
+		f("Ephesians 1-6", chapterRange{
+			book: "Ephesians", bookSlug: "ephesians",
+			startChapter: 1, endChapter: 6,
+		}, false)
+	})
+	t.Run("single_chapter", func(t *testing.T) {
+		f("John 1-1", chapterRange{
+			book: "John", bookSlug: "john",
+			startChapter: 1, endChapter: 1,
+		}, false)
+	})
+	t.Run("multi_word_book", func(t *testing.T) {
+		f("1 Corinthians 13-14", chapterRange{
+			book: "1 Corinthians", bookSlug: "1-corinthians",
+			startChapter: 13, endChapter: 14,
+		}, false)
+	})
+	t.Run("inverted_range", func(t *testing.T) { f("John 5-1", chapterRange{}, true) })
+	// Verse-range format must be rejected — it does not match "Book ch-ch"
+	t.Run("verse_range_rejected", func(t *testing.T) { f("John 1:1-10", chapterRange{}, true) })
+	t.Run("empty_string", func(t *testing.T) { f("", chapterRange{}, true) })
+}
+
+// ---------------------------------------------------------------------------
 // parsePassageHTML tests
 // ---------------------------------------------------------------------------
 
@@ -148,3 +188,110 @@ func TestParsePassageHTML(t *testing.T) {
 		assert.Nil(t, words)
 	})
 }
+
+// ---------------------------------------------------------------------------
+// parseChapterHTML tests
+// ---------------------------------------------------------------------------
+
+// validChapterHTML mirrors a real greekbible.com chapter page: <sup> verse
+// markers and word spans are direct siblings inside the passage-output div.
+const validChapterHTML = `<html><body>
+<div class="passage-output bg-white shadow-lg border border-stone-300 rounded-sm p-4 lg:p-12 lg:pe-16">
+<h2 class="text-xl lg:text-2xl font-semibold mb-4">John 8</h2>
+<sup>1</sup>
+<span data-over-tt="Jesus" data-tt-placement="bottom" class="word relative word-1">Ἰησοῦς </span>
+<span data-over-tt="but" data-tt-placement="bottom" class="word relative word-2">δὲ </span>
+<sup>2</sup>
+<span data-over-tt="early" data-tt-placement="bottom" class="word relative word-3">Ὄρθρου </span>
+<span data-over-tt="again" data-tt-placement="bottom" class="word relative word-4">πάλιν </span>
+<span data-over-tt="he came" data-tt-placement="bottom" class="word relative word-5">παρεγένετο </span>
+</div>
+</body></html>`
+
+func TestParseChapterHTML(t *testing.T) {
+	t.Run("groups_words_by_sup_verse_number", func(t *testing.T) {
+		verses, ok := parseChapterHTML(strings.NewReader(validChapterHTML))
+		require.True(t, ok)
+		require.Len(t, verses, 2)
+		assert.Equal(t, "1", verses[0].num)
+		assert.Equal(t, []string{"Ἰησοῦς", "δὲ"}, verses[0].words)
+		assert.Equal(t, "2", verses[1].num)
+		assert.Equal(t, []string{"Ὄρθρου", "πάλιν", "παρεγένετο"}, verses[1].words)
+	})
+	t.Run("guide_page_returns_false", func(t *testing.T) {
+		verses, ok := parseChapterHTML(strings.NewReader(invalidVerseHTML))
+		assert.False(t, ok)
+		assert.Nil(t, verses)
+	})
+	t.Run("sup_with_no_following_words_is_dropped", func(t *testing.T) {
+		// A <sup> at the very end of the div with no word spans should not produce
+		// an empty verse entry.
+		html := `<html><body>
+<div class="passage-output">
+<sup>1</sup>
+<span class="word relative">Ἰησοῦς </span>
+<sup>2</sup>
+</div></body></html>`
+		verses, ok := parseChapterHTML(strings.NewReader(html))
+		require.True(t, ok)
+		require.Len(t, verses, 1)
+		assert.Equal(t, "1", verses[0].num)
+	})
+	t.Run("non_numeric_sup_is_ignored", func(t *testing.T) {
+		// Footnote markers like '*' or 'a' must not be treated as verse numbers,
+		// which would corrupt the verse grouping and filterVerses logic.
+		html := `<html><body>
+<div class="passage-output">
+<sup>1</sup>
+<span class="word relative">Ἰησοῦς </span>
+<sup>*</sup>
+<span class="word relative">δὲ </span>
+<sup>2</sup>
+<span class="word relative">Ὄρθρου </span>
+</div></body></html>`
+		verses, ok := parseChapterHTML(strings.NewReader(html))
+		require.True(t, ok)
+		require.Len(t, verses, 2)
+		// The '*' sup is ignored; its following word span is attached to verse 1.
+		assert.Equal(t, "1", verses[0].num)
+		assert.Equal(t, []string{"Ἰησοῦς", "δὲ"}, verses[0].words)
+		assert.Equal(t, "2", verses[1].num)
+		assert.Equal(t, []string{"Ὄρθρου"}, verses[1].words)
+	})
+}
+
+// ---------------------------------------------------------------------------
+// filterVerses tests
+// ---------------------------------------------------------------------------
+
+func TestFilterVerses(t *testing.T) {
+	allVerses := []verse{
+		{num: "1"}, {num: "2"}, {num: "3"}, {num: "4"}, {num: "5"},
+	}
+
+	f := func(ch int, r refRange, wantNums []string) {
+		t.Helper()
+		got := filterVerses(allVerses, ch, r)
+		var nums []string
+		for _, v := range got {
+			nums = append(nums, v.num)
+		}
+		assert.Equal(t, wantNums, nums)
+	}
+
+	r := refRange{startChapter: 2, startVerse: 2, endChapter: 4, endVerse: 4}
+	t.Run("start_chapter_trims_leading_verses", func(t *testing.T) {
+		f(2, r, []string{"2", "3", "4", "5"})
+	})
+	t.Run("middle_chapter_unchanged", func(t *testing.T) {
+		f(3, r, []string{"1", "2", "3", "4", "5"})
+	})
+	t.Run("end_chapter_trims_trailing_verses", func(t *testing.T) {
+		f(4, r, []string{"1", "2", "3", "4"})
+	})
+	t.Run("same_chapter_trims_both_ends", func(t *testing.T) {
+		same := refRange{startChapter: 1, startVerse: 2, endChapter: 1, endVerse: 4}
+		f(1, same, []string{"2", "3", "4"})
+	})
+}
+
