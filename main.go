@@ -36,9 +36,11 @@ Usage:
 	go run . -input practice.txt -title "My Practice Sheet"
 	go run . -input practice.txt -sheet-id <ID STRING FROM SHEETS URL>
 	go run . -ref "John 1:1-14" -title "John 1"
+	go run . -ref "John 1:1-14" -title "John 1" -folder-id <ID FROM DRIVE FOLDER URL>
 	go run . -ref "John 1:50-2:10" -title "John cross-chapter"
 	go run . -ref "Ephesians 1-6" -chapter-per-tab -sheet-id <ID>
 	go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians"
+	go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians" -folder-id <ID FROM DRIVE FOLDER URL>
 */
 package main
 
@@ -66,6 +68,7 @@ type config struct {
 	Title         string
 	SecretsFile   string
 	SheetID       string // non-empty = add a tab to this existing spreadsheet
+	FolderID      string // non-empty = create the new spreadsheet inside this Drive folder
 	ChapterPerTab bool   // create one tab per chapter (requires whole-chapter ref format)
 }
 
@@ -87,13 +90,14 @@ func start(args []string) error {
 	title := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename or ref)")
 	secretsFile := flags.String("secrets", "client_secret.json", "Path to the Google OAuth2 client secrets JSON file")
 	sheetID := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
+	folderID := flags.String("folder-id", "", "Google Drive folder ID to create the new spreadsheet in (optional; find it in the folder's URL)")
 	chapterPerTab := flags.Bool("chapter-per-tab", false, "Create one tab per chapter; use with a whole-chapter ref like \"Ephesians 1-6\"")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
 
 	if *inputFile == "" && *refFlag == "" {
-		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-secrets <path>] [-chapter-per-tab]", args[0])
+		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-secrets <path>] [-chapter-per-tab]", args[0])
 	}
 	if *inputFile != "" && *refFlag != "" {
 		return fmt.Errorf("-input and -ref are mutually exclusive: provide one or the other, not both")
@@ -104,6 +108,9 @@ func start(args []string) error {
 	if *chapterPerTab && *refFlag == "" {
 		return fmt.Errorf("-chapter-per-tab requires -ref with a whole-chapter range like \"Ephesians 1-6\"")
 	}
+	if *sheetID != "" && *folderID != "" {
+		return fmt.Errorf("-sheet-id and -folder-id are mutually exclusive: -folder-id only applies when creating a new spreadsheet, but -sheet-id targets an existing one")
+	}
 
 	conf := config{
 		InputFile:     *inputFile,
@@ -111,6 +118,7 @@ func start(args []string) error {
 		Title:         *title,
 		SecretsFile:   *secretsFile,
 		SheetID:       *sheetID,
+		FolderID:      *folderID,
 		ChapterPerTab: *chapterPerTab,
 	}
 	if conf.SheetID != "" && *title != "" {
@@ -198,7 +206,7 @@ func (a *app) run(ctx context.Context) error {
 	if a.conf.SheetID != "" {
 		url, err = addTabToSpreadsheet(ctx, httpClient, a.conf.SheetID, tabName, d)
 	} else {
-		url, err = createSpreadsheet(ctx, httpClient, a.conf.Title, tabName, d)
+		url, err = createSpreadsheet(ctx, httpClient, a.conf.Title, tabName, a.conf.FolderID, d)
 	}
 	if err != nil {
 		return err
@@ -247,7 +255,7 @@ func (a *app) runChapterPerTab(ctx context.Context, httpClient *http.Client) err
 
 		if spreadsheetID == "" {
 			// First chapter — create the spreadsheet; subsequent chapters add tabs.
-			sheetURL, err = createSpreadsheet(ctx, httpClient, a.conf.Title, tabName, d)
+			sheetURL, err = createSpreadsheet(ctx, httpClient, a.conf.Title, tabName, a.conf.FolderID, d)
 			if err != nil {
 				return err
 			}
