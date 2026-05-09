@@ -102,7 +102,7 @@ func bookSlug(book string) string {
 // The book name is omitted — it normally appears in the sheet title instead.
 // Examples: "1:1 - 1:10", "1:50 - 2:10".
 func tabNameFromRef(r refRange) string {
-	return fmt.Sprintf("%d:%d - %d:%d", r.startChapter, r.startVerse, r.endChapter, r.endVerse)
+	return fmt.Sprintf("%d:%d-%d:%d", r.startChapter, r.startVerse, r.endChapter, r.endVerse)
 }
 
 // ---------------------------------------------------------------------------

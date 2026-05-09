@@ -95,13 +95,13 @@ func TestTabNameFromRef(t *testing.T) {
 	}
 
 	t.Run("same_chapter", func(t *testing.T) {
-		f(refRange{startChapter: 1, startVerse: 1, endChapter: 1, endVerse: 10}, "1:1 - 1:10")
+		f(refRange{startChapter: 1, startVerse: 1, endChapter: 1, endVerse: 10}, "1:1-1:10")
 	})
 	t.Run("cross_chapter", func(t *testing.T) {
-		f(refRange{startChapter: 1, startVerse: 50, endChapter: 2, endVerse: 10}, "1:50 - 2:10")
+		f(refRange{startChapter: 1, startVerse: 50, endChapter: 2, endVerse: 10}, "1:50-2:10")
 	})
 	t.Run("single_verse", func(t *testing.T) {
-		f(refRange{startChapter: 3, startVerse: 16, endChapter: 3, endVerse: 16}, "3:16 - 3:16")
+		f(refRange{startChapter: 3, startVerse: 16, endChapter: 3, endVerse: 16}, "3:16-3:16")
 	})
 }
 
@@ -294,4 +294,3 @@ func TestFilterVerses(t *testing.T) {
 		f(1, same, []string{"2", "3", "4"})
 	})
 }
-
