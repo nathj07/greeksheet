@@ -178,7 +178,7 @@ appear in your Drive root.
 ### Tab naming
 
 - **File mode / verse-range fetch**: the tab is named from the verse range,
-  e.g. `1:1 - 1:14` or `13:1 - 14:40`. The book name is omitted — it
+  e.g. `1:1-1:14` or `13:1-14:40`. The book name is omitted — it
   typically appears in the spreadsheet title instead.
 - **Chapter-per-tab mode**: each tab is named by chapter number only, e.g.
   `1`, `2`, `3`.
