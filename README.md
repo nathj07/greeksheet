@@ -147,7 +147,8 @@ Exactly one of `-input` or `-ref` must be supplied.
 | `-ref` | | Reference range to fetch from greekbible.com. Use `"Book ch:v-v"` or `"Book ch:v-ch:v"` for verse ranges; use `"Book ch-ch"` with `-chapter-per-tab` for whole chapters (**mutually exclusive with `-input`**) |
 | `-chapter-per-tab` | `false` | Create one tab per chapter; requires `-ref` with a whole-chapter range like `"Ephesians 1-6"` |
 | `-title` | input filename (without extension), or the ref string | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
-| `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to |
+| `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to (**mutually exclusive with `-folder-id`**) |
+| `-folder-id` | *(omit to create in Drive root)* | Google Drive folder ID to create the **new** spreadsheet inside (**mutually exclusive with `-sheet-id`**) |
 | `-secrets` | `client_secret.json` | Path to your OAuth 2.0 client secrets file |
 
 ### Finding a spreadsheet ID
@@ -162,10 +163,22 @@ https://docs.google.com/spreadsheets/d/<ID STRING IS HERE>/edit
 Copy everything between `/d/` and `/edit` (or the next `/`) and pass it as
 `-sheet-id`.
 
+### Finding a Drive folder ID
+
+The folder ID appears in the Google Drive URL when you open a folder:
+
+```
+https://drive.google.com/drive/folders/<FOLDER ID IS HERE>
+```
+
+Copy the ID at the end of the URL and pass it as `-folder-id`. The new
+spreadsheet will be created directly inside that folder — it will never
+appear in your Drive root.
+
 ### Tab naming
 
 - **File mode / verse-range fetch**: the tab is named from the verse range,
-  e.g. `1:1 - 1:14` or `13:1 - 14:40`. The book name is omitted — it
+  e.g. `1:1-1:14` or `13:1-14:40`. The book name is omitted — it
   typically appears in the spreadsheet title instead.
 - **Chapter-per-tab mode**: each tab is named by chapter number only, e.g.
   `1`, `2`, `3`.
@@ -196,6 +209,12 @@ go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians"
 
 # Chapter-per-tab — add tabs to an existing spreadsheet
 go run . -ref "Ephesians 1-6" -chapter-per-tab -sheet-id <ID>
+
+# Create a new spreadsheet inside a specific Drive folder
+go run . -ref "John 1:1-14" -title "John 1" -folder-id <FOLDER ID FROM DRIVE URL>
+
+# Chapter-per-tab — create a new spreadsheet in a specific Drive folder
+go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians" -folder-id <FOLDER ID FROM DRIVE URL>
 
 # Secrets file lives somewhere else
 go run . -input 1cor13.txt -secrets ~/keys/my_secret.json
