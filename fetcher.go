@@ -1,17 +1,20 @@
 /*
 Package main — fetcher.go
 
-Fetches Greek NT verses directly from greekbible.com using the URL pattern:
+Fetches Greek NT verses directly from greekbible.com.
 
-	https://www.greekbible.com/{book-slug}/{chapter}/{verse}
+Chapter-level fetching: one HTTP request per chapter retrieves all verses in
+that chapter using the URL pattern:
 
-Given a reference range like "John 1:1-10" or "John 1:50-2:10", fetchSections
-iterates verse-by-verse, parses the Greek words from the passage-output div,
-and returns the same []section format that the file-based parser produces.
+	https://www.greekbible.com/{book-slug}/{chapter}
 
-Chapter-end detection relies on the site's behaviour: a non-existent verse
-returns HTTP 200 with the generic "Greek NT Guide" section inside the
-passage-output div (no <sup> or word spans), rather than a 404.
+The chapter page contains <sup>N</sup> verse markers followed by
+<span class="word …"> word spans as direct siblings inside the passage-output
+div. parseChapterHTML groups these into verses.
+
+For verse-range refs like "John 1:1-10" or "John 7:45-8:12", fetchSections
+fetches each chapter once and filters verses to the requested range in-process
+— no verse-by-verse probing needed.
 */
 package main
 
@@ -103,6 +106,70 @@ func tabNameFromRef(r refRange) string {
 }
 
 // ---------------------------------------------------------------------------
+// Whole-chapter range (used by --chapter-per-tab)
+// ---------------------------------------------------------------------------
+
+// chapterRange holds a parsed whole-chapter range, e.g. "Ephesians 1-6".
+// It is the input type for --chapter-per-tab mode, where no verse boundaries
+// are specified and every chapter is fetched in full.
+type chapterRange struct {
+	book         string // display name, e.g. "Ephesians"
+	bookSlug     string // URL slug, e.g. "ephesians"
+	startChapter int
+	endChapter   int
+}
+
+// chapterRangeRE matches "Book ch-ch", e.g. "Ephesians 1-6".
+// The book name may contain spaces and leading digits (e.g. "1 John 1-5").
+var chapterRangeRE = regexp.MustCompile(`^(.+?)\s+(\d+)-(\d+)$`)
+
+// parseChapterRange parses a whole-chapter range like "Ephesians 1-6" or
+// "1 Corinthians 13-14". Returns an error if the format is wrong or the
+// chapter range is inverted.
+func parseChapterRange(s string) (chapterRange, error) {
+	s = strings.TrimSpace(s)
+	m := chapterRangeRE.FindStringSubmatch(s)
+	if m == nil {
+		return chapterRange{}, fmt.Errorf("invalid chapter range %q: expected format \"Book ch-ch\"", s)
+	}
+	startCh, _ := strconv.Atoi(m[2])
+	endCh, _ := strconv.Atoi(m[3])
+	if startCh > endCh {
+		return chapterRange{}, fmt.Errorf("invalid chapter range %q: start chapter must not exceed end chapter", s)
+	}
+	book := m[1]
+	return chapterRange{
+		book:         book,
+		bookSlug:     bookSlug(book),
+		startChapter: startCh,
+		endChapter:   endCh,
+	}, nil
+}
+
+// fetchChapterSections fetches all verses of a single chapter and returns them
+// as sections with a heading. tabName is the chapter number as a string (e.g. "3").
+//
+// This is the building block for --chapter-per-tab: the caller loops over
+// chapters and creates one sheet tab per call.
+func fetchChapterSections(ctx context.Context, client *http.Client, cr chapterRange, ch int) ([]section, string, error) {
+	fmt.Printf("  Fetching %s chapter %d…\n", cr.book, ch)
+	verses, ok, err := fetchChapter(ctx, client, cr.bookSlug, ch)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching %s %d: %w", cr.book, ch, err)
+	}
+	if !ok {
+		return nil, "", fmt.Errorf("no content returned for %s chapter %d — check the reference is valid", cr.book, ch)
+	}
+
+	tabName := strconv.Itoa(ch)
+	sections := []section{
+		{heading: tabName},
+		{verses: verses},
+	}
+	return sections, tabName, nil
+}
+
+// ---------------------------------------------------------------------------
 // HTML parsing
 // ---------------------------------------------------------------------------
 
@@ -131,6 +198,68 @@ func parsePassageHTML(r io.Reader) ([]string, bool) {
 		return nil, false
 	}
 	return words, true
+}
+
+// parseChapterHTML parses a full greekbible.com chapter page and groups the
+// Greek word spans by verse number.
+//
+// The chapter page's passage-output div contains <sup>N</sup> verse markers
+// and <span class="word …"> word spans as direct siblings. This function walks
+// those siblings in order, collecting words under each sup marker.
+//
+// Returns (verses, true) on success, or (nil, false) when the passage-output
+// div contains no verses (e.g. the site's guide-page fallback is rendered).
+func parseChapterHTML(r io.Reader) ([]verse, bool) {
+	doc, err := html.Parse(r)
+	if err != nil {
+		return nil, false
+	}
+
+	passageDiv := findPassageOutputDiv(doc)
+	if passageDiv == nil {
+		return nil, false
+	}
+
+	var verses []verse
+	var currentVerseNum string
+	var currentWords []string
+
+	flushVerse := func() {
+		if currentVerseNum != "" && len(currentWords) > 0 {
+			verses = append(verses, verse{num: currentVerseNum, words: currentWords})
+		}
+		currentVerseNum = ""
+		currentWords = nil
+	}
+
+	for c := passageDiv.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type != html.ElementNode {
+			continue
+		}
+		switch c.Data {
+		case "sup":
+			text := strings.TrimSpace(extractText(c))
+			// Only treat numeric <sup> elements as verse markers. Non-numeric
+			// superscripts (e.g. footnote symbols or asterisks) are ignored so
+			// they don't corrupt the verse grouping or filterVerses logic.
+			if _, err := strconv.Atoi(text); err == nil {
+				flushVerse()
+				currentVerseNum = text
+			}
+		case "span":
+			if hasClass(c, "word") {
+				if text := strings.TrimSpace(extractText(c)); text != "" {
+					currentWords = append(currentWords, text)
+				}
+			}
+		}
+	}
+	flushVerse()
+
+	if len(verses) == 0 {
+		return nil, false
+	}
+	return verses, true
 }
 
 // findPassageOutputDiv traverses the HTML tree and returns the first <div>
@@ -198,97 +327,22 @@ func extractText(n *html.Node) string {
 }
 
 // ---------------------------------------------------------------------------
-// Verse fetcher
+// Fetchers
 // ---------------------------------------------------------------------------
 
 const (
-	greekBibleBase  = "https://www.greekbible.com"
-	fetchDelay      = 100 * time.Millisecond
+	greekBibleBase = "https://www.greekbible.com"
+	fetchDelay     = 100 * time.Millisecond
 )
 
-// fetchSections fetches Greek verses from greekbible.com for the given
-// reference range and returns them as sections ready for buildSheetData.
+// fetchChapter retrieves the full chapter page and parses it into verses.
+// URL pattern: https://www.greekbible.com/{slug}/{chapter}
 //
-// A chapter heading section (containing just the chapter number as a bold
-// label) is emitted before the first verse of each chapter, matching what the
-// # heading lines do in the file-based input mode.
-//
-// Chapter-end detection: when a verse URL returns the generic guide page
-// (no word spans in the passage-output div), the fetcher increments the
-// chapter, resets the verse to 1, and continues — unless the chapter has
-// already reached the end chapter, in which case it stops.
-func fetchSections(ctx context.Context, refStr string) ([]section, string, error) {
-	r, err := parseRef(refStr)
-	if err != nil {
-		return nil, "", err
-	}
-
-	tabName := tabNameFromRef(r)
-	client := &http.Client{Timeout: 15 * time.Second}
-
-	var sections []section
-	ch := r.startChapter
-	v := r.startVerse
-
-	// Emit the first chapter heading before fetching anything.
-	sections = append(sections, section{heading: strconv.Itoa(ch)})
-
-	for {
-		if ctx.Err() != nil {
-			return nil, "", ctx.Err()
-		}
-
-		words, valid, err := fetchVerse(ctx, client, r.bookSlug, ch, v)
-		if err != nil {
-			return nil, "", fmt.Errorf("fetching %s %d:%d: %w", r.book, ch, v, err)
-		}
-
-		if !valid {
-			// The site returned the guide page — this verse doesn't exist,
-			// meaning we've hit the end of the chapter.
-			if ch >= r.endChapter {
-				// Already at or past the target end chapter; nothing more to fetch.
-				break
-			}
-			ch++
-			if ch > r.endChapter {
-				// Sanity guard: don't overshoot the end chapter (e.g. if the
-				// site returns unexpected invalid responses back-to-back).
-				break
-			}
-			v = 1
-			sections = append(sections, section{heading: strconv.Itoa(ch)})
-			// No delay needed — we didn't get real content on the last request.
-			continue
-		}
-
-		sections = append(sections, section{
-			verses: []verse{{num: strconv.Itoa(v), words: words}},
-		})
-
-		if ch == r.endChapter && v == r.endVerse {
-			break
-		}
-
-		v++
-		// Use a context-aware sleep so the tool exits promptly on cancellation
-		// rather than blocking for fetchDelay after each verse.
-		select {
-		case <-time.After(fetchDelay):
-		case <-ctx.Done():
-			return nil, "", ctx.Err()
-		}
-	}
-
-	return sections, tabName, nil
-}
-
-// fetchVerse retrieves a single verse page and parses the Greek words.
-// Returns (words, true, nil) on success or (nil, false, nil) when the site
-// indicates the verse doesn't exist. A non-nil error means a network or
-// HTTP-level failure.
-func fetchVerse(ctx context.Context, client *http.Client, slug string, chapter, verse int) ([]string, bool, error) {
-	url := fmt.Sprintf("%s/%s/%d/%d", greekBibleBase, slug, chapter, verse)
+// Returns (verses, true, nil) on success, or (nil, false, nil) when the site
+// returns the generic guide page (no verses). A non-nil error means a network
+// or HTTP-level failure.
+func fetchChapter(ctx context.Context, client *http.Client, slug string, chapter int) ([]verse, bool, error) {
+	url := fmt.Sprintf("%s/%s/%d", greekBibleBase, slug, chapter)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, false, err
@@ -300,8 +354,6 @@ func fetchVerse(ctx context.Context, client *http.Client, slug string, chapter, 
 	}
 	defer resp.Body.Close()
 
-	// A true 404 (if the site ever starts returning them) means the verse
-	// does not exist — treat it the same as the guide-page fallback.
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, false, nil
 	}
@@ -309,6 +361,76 @@ func fetchVerse(ctx context.Context, client *http.Client, slug string, chapter, 
 		return nil, false, fmt.Errorf("unexpected status %d from %s", resp.StatusCode, url)
 	}
 
-	words, ok := parsePassageHTML(resp.Body)
-	return words, ok, nil
+	verses, ok := parseChapterHTML(resp.Body)
+	return verses, ok, nil
+}
+
+// fetchSections fetches Greek verses from greekbible.com for the given
+// reference range and returns them as sections ready for buildSheetData.
+//
+// One HTTP request is made per chapter in the range. Within the first and
+// last chapters, verses are filtered to the requested start/end verse
+// boundaries; middle chapters are included whole.
+//
+// A chapter heading section is emitted before each chapter's verses, matching
+// what the # heading lines do in the file-based input mode.
+func fetchSections(ctx context.Context, refStr string) ([]section, string, error) {
+	r, err := parseRef(refStr)
+	if err != nil {
+		return nil, "", err
+	}
+
+	tabName := tabNameFromRef(r)
+	client := &http.Client{Timeout: 15 * time.Second}
+
+	var sections []section
+	for ch := r.startChapter; ch <= r.endChapter; ch++ {
+		if ctx.Err() != nil {
+			return nil, "", ctx.Err()
+		}
+
+		fmt.Printf("  Fetching %s chapter %d…\n", r.book, ch)
+		verses, ok, err := fetchChapter(ctx, client, r.bookSlug, ch)
+		if err != nil {
+			return nil, "", fmt.Errorf("fetching %s %d: %w", r.book, ch, err)
+		}
+		if !ok {
+			return nil, "", fmt.Errorf("no content returned for %s chapter %d — check the reference is valid", r.book, ch)
+		}
+
+		filtered := filterVerses(verses, ch, r)
+		sections = append(sections, section{heading: strconv.Itoa(ch)})
+		if len(filtered) > 0 {
+			sections = append(sections, section{verses: filtered})
+		}
+
+		if ch < r.endChapter {
+			select {
+			case <-time.After(fetchDelay):
+			case <-ctx.Done():
+				return nil, "", ctx.Err()
+			}
+		}
+	}
+
+	return sections, tabName, nil
+}
+
+// filterVerses trims a full chapter's verse list to the subset requested by r.
+// For the start chapter, verses before r.startVerse are dropped.
+// For the end chapter, verses after r.endVerse are dropped.
+// Middle chapters are returned unchanged.
+func filterVerses(verses []verse, ch int, r refRange) []verse {
+	var out []verse
+	for _, v := range verses {
+		vn, _ := strconv.Atoi(v.num)
+		if ch == r.startChapter && vn < r.startVerse {
+			continue
+		}
+		if ch == r.endChapter && vn > r.endVerse {
+			continue
+		}
+		out = append(out, v)
+	}
+	return out
 }
