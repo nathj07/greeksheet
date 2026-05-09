@@ -166,7 +166,7 @@ func createSpreadsheet(ctx context.Context, client *http.Client, title, tabName,
 	// Make the sheet accessible via link.
 	if _, err = driveSvc.Permissions.Create(spreadsheetID, &drive.Permission{
 		Type: "anyone",
-		Role: "writer",
+		Role: "reader",
 	}).Context(ctx).Do(); err != nil {
 		// Non-fatal — sheet is still usable by the owner.
 		fmt.Fprintf(os.Stderr, "Warning: could not set sharing permissions: %v\n", err)
