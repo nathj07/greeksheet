@@ -32,6 +32,10 @@ inserted automatically whenever the chapter changes.
 
 All text is set at 12 pt for comfortable reading of Greek characters.
 
+![Greeksheet screenshot](images/screenshot_example.png)
+Generated using `go run . -ref "Philippains 1-4" -chapter-per-tab -title "Philippians"
+`, details on the command are provided below.
+
 ## Prerequisites
 
 - Go 1.21 or later
@@ -111,7 +115,7 @@ spreadsheet tab named by chapter number (`"1"`, `"2"`, …):
 
 ```bash
 # Create a new spreadsheet with one tab per chapter
-go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians"
+go run . -ref "Philippains 1-4" -chapter-per-tab -title "Philippians"
 
 # Add tabs to an existing spreadsheet
 go run . -ref "Ephesians 1-6" -chapter-per-tab -sheet-id <ID>
@@ -205,7 +209,7 @@ go run . -ref "John 3:36-4:5" -title "John cross-chapter"
 go run . -ref "Romans 8:1-17" -title "Romans 8" -sheet-id <ID>
 
 # Chapter-per-tab — create a new spreadsheet with 6 tabs (one per chapter)
-go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians"
+go run . -ref "Philippians 1-4" -chapter-per-tab -title "Philippians"
 
 # Chapter-per-tab — add tabs to an existing spreadsheet
 go run . -ref "Ephesians 1-6" -chapter-per-tab -sheet-id <ID>
