@@ -38,10 +38,12 @@ func toAPIColor(c rgbColor) *sheets.Color {
 // ---------------------------------------------------------------------------
 
 type sheetData struct {
-	rows         [][]any
-	bgRequests   []*sheets.Request
-	mergeReqs    []*sheets.Request
-	boldRequests []*sheets.Request
+	rows          [][]any
+	bgRequests    []*sheets.Request
+	mergeReqs     []*sheets.Request
+	boldRequests  []*sheets.Request
+	alignVertReqs []*sheets.Request
+	textWrapReqs  []*sheets.Request
 }
 
 // buildSheetData converts parsed sections into row data and Sheets API
@@ -115,6 +117,24 @@ func buildSheetData(sections []section) sheetData {
 		}
 	}
 
+	// Set vertical alignment to top for all cells to avoid awkward default centering in taller rows.
+	d.alignVertReqs = append(d.alignVertReqs, &sheets.Request{
+		RepeatCell: &sheets.RepeatCellRequest{
+			Range:  &sheets.GridRange{SheetId: 0},
+			Cell:   &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{VerticalAlignment: "TOP"}},
+			Fields: "userEnteredFormat.verticalAlignment",
+		},
+	})
+
+	// Set text wrap for all cells to avoid overflow and ensure row heights adjust to fit content.
+	d.textWrapReqs = append(d.textWrapReqs, &sheets.Request{
+		RepeatCell: &sheets.RepeatCellRequest{
+			Range:  &sheets.GridRange{SheetId: 0},
+			Cell:   &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{WrapStrategy: "WRAP"}},
+			Fields: "userEnteredFormat.wrapStrategy",
+		},
+	})
+
 	return d
 }
 
@@ -159,6 +179,26 @@ func boldReq(sr, sc, er, ec int64) *sheets.Request {
 	}}
 }
 
+func alignVertReq(sr, sc, er, ec int64, align string) *sheets.Request {
+	return &sheets.Request{RepeatCell: &sheets.RepeatCellRequest{
+		Range: gridRange(sr, sc, er, ec),
+		Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{
+			VerticalAlignment: align,
+		}},
+		Fields: "userEnteredFormat.verticalAlignment",
+	}}
+}
+
+func textWrapReq(sr, sc, er, ec int64) *sheets.Request {
+	return &sheets.Request{RepeatCell: &sheets.RepeatCellRequest{
+		Range: gridRange(sr, sc, er, ec),
+		Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{
+			WrapStrategy: "WRAP",
+		}},
+		Fields: "userEnteredFormat.wrapStrategy",
+	}}
+}
+
 func narrowColAReq(sheetID int64) *sheets.Request {
 	return &sheets.Request{UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 		Range: &sheets.DimensionRange{
@@ -184,6 +224,19 @@ func fontSizeReq(sheetID int64, size int64) *sheets.Request {
 	}}
 }
 
+func textNumberFormatReq(sheetID int64) *sheets.Request {
+	return &sheets.Request{RepeatCell: &sheets.RepeatCellRequest{
+		Range: &sheets.GridRange{
+			SheetId:          sheetID,
+			StartColumnIndex: 1,
+		},
+		Cell: &sheets.CellData{UserEnteredFormat: &sheets.CellFormat{
+			NumberFormat: &sheets.NumberFormat{Type: "TEXT"},
+		}},
+		Fields: "userEnteredFormat.numberFormat",
+	}}
+}
+
 // patchSheetID rewrites every GridRange.SheetId in d's formatting requests to
 // the given id. This is needed after a tab is created and its real sheetId
 // (assigned by Google) becomes known — buildSheetData uses 0 as a placeholder.
@@ -204,4 +257,6 @@ func patchSheetID(d *sheetData, id int64) {
 	patchReqs(d.bgRequests)
 	patchReqs(d.mergeReqs)
 	patchReqs(d.boldRequests)
+	patchReqs(d.alignVertReqs)
+	patchReqs(d.textWrapReqs)
 }
