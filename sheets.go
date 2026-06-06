@@ -81,8 +81,11 @@ func populateTab(ctx context.Context, sheetsSvc *sheets.Service, spreadsheetID, 
 	allReqs = append(allReqs, d.mergeReqs...)
 	allReqs = append(allReqs, d.bgRequests...)
 	allReqs = append(allReqs, d.boldRequests...)
+	allReqs = append(allReqs, d.alignVertReqs...)
+	allReqs = append(allReqs, d.textWrapReqs...)
 	allReqs = append(allReqs, narrowColAReq(sheetID))
 	allReqs = append(allReqs, fontSizeReq(sheetID, 12))
+	allReqs = append(allReqs, textNumberFormatReq(sheetID))
 
 	fmtReq := &sheets.BatchUpdateSpreadsheetRequest{Requests: allReqs}
 	if _, err := sheetsSvc.Spreadsheets.BatchUpdate(spreadsheetID, fmtReq).Context(ctx).Do(); err != nil {
