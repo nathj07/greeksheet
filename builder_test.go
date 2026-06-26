@@ -23,8 +23,8 @@ func TestBuildSheetData_verseBlock(t *testing.T) {
 	sections := []section{{verses: []verse{{num: "1", words: []string{"word", "two"}}}}}
 	d := buildSheetData(sections)
 
-	// verse row + 2 parsing rows + I + T + C + N = 7 rows
-	assert.Len(t, d.rows, 7)
+	// verse row + 2 parsing rows + O + I + T + C + N = 8 rows
+	assert.Len(t, d.rows, 8)
 
 	// Verse row: num then words
 	assert.Equal(t, []any{"1", "word", "two"}, d.rows[0])
@@ -33,16 +33,36 @@ func TestBuildSheetData_verseBlock(t *testing.T) {
 	assert.Equal(t, any(nil), d.rows[1][0])
 	assert.Equal(t, any(nil), d.rows[2][0])
 
+	// O row: label then joined original Greek text
+	assert.Equal(t, "O", d.rows[3][0])
+	assert.Equal(t, "word two", d.rows[3][1])
+
 	// I row label
-	assert.Equal(t, "I", d.rows[3][0])
+	assert.Equal(t, "I", d.rows[4][0])
 
 	// T row label
-	assert.Equal(t, "T", d.rows[4][0])
+	assert.Equal(t, "T", d.rows[5][0])
 
-	// C and N are merged (2 words → merge requested)
-	assert.Len(t, d.mergeReqs, 4) // I, T, C, N rows all get merged cells
+	// O, I, T, C, N rows all get merged cells (2 words → merge requested)
+	assert.Len(t, d.mergeReqs, 5)
+	// verse + O + I + T rows each have a background colour; C and N do not
+	assert.Len(t, d.bgRequests, 4)
 	assert.Len(t, d.alignVertReqs, 1)
 	assert.Len(t, d.textWrapReqs, 1)
+}
+
+func TestBuildSheetData_verseBlock_singleWord(t *testing.T) {
+	sections := []section{{verses: []verse{{num: "1", words: []string{"λόγος"}}}}}
+	d := buildSheetData(sections)
+
+	assert.Len(t, d.rows, 8)
+
+	// O row holds the single word with no merge needed
+	assert.Equal(t, "O", d.rows[3][0])
+	assert.Equal(t, "λόγος", d.rows[3][1])
+
+	// No merges when there is only one word column
+	assert.Len(t, d.mergeReqs, 0)
 }
 
 // TestBuildSheetData_wholeSheetFormattingRequests checks that buildSheetData always emits exactly

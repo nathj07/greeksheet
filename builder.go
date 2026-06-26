@@ -25,6 +25,7 @@ func hexToRGB(hex string) rgbColor {
 
 var (
 	colGrey   = hexToRGB("d9d9d9") // verse row
+	colBlue   = hexToRGB("cfe2f3") // O row — original Greek text
 	colOrange = hexToRGB("fce5cd") // I row — interlinear practice
 	colGreen  = hexToRGB("b7e1cd") // T row — translation practice
 )
@@ -69,6 +70,14 @@ func buildSheetData(sections []section) sheetData {
 		// Two unlabelled rows for parsing and building word choices — one cell per
 		// Greek word so each word's work sits directly beneath it.
 		d.rows = append(d.rows, make([]any, 1+wordCount), make([]any, 1+wordCount))
+
+		// O row — single merged cell holding the original Greek text for reference
+		r = int64(len(d.rows))
+		d.rows = append(d.rows, []any{"O", strings.Join(v.words, " ")})
+		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colBlue))
+		if wordCount > 1 {
+			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
+		}
 
 		// I row — single merged cell for interlinear practice
 		r = int64(len(d.rows))
