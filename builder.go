@@ -45,12 +45,18 @@ type sheetData struct {
 	boldRequests  []*sheets.Request
 	alignVertReqs []*sheets.Request
 	textWrapReqs  []*sheets.Request
+	colWidthReqs  []*sheets.Request
 }
 
 // buildSheetData converts parsed sections into row data and Sheets API
 // formatting requests (backgrounds, merges, bold headings).
 func buildSheetData(sections []section) sheetData {
 	var d sheetData
+
+	// maxWordRuneLen[i] is the widest word (in runes) seen in 0-based column i.
+	// Index 0 corresponds to col A, which is sized separately by narrowColAReq;
+	// only word columns starting at index 1 are ever written into this slice.
+	var maxWordRuneLen []int
 
 	addVerseBlock := func(v verse) {
 		wordCount := len(v.words)
@@ -63,6 +69,13 @@ func buildSheetData(sections []section) sheetData {
 		row[0] = v.num
 		for i, w := range v.words {
 			row[1+i] = w
+			col := 1 + i
+			for len(maxWordRuneLen) <= col {
+				maxWordRuneLen = append(maxWordRuneLen, 0)
+			}
+			if n := len([]rune(w)); n > maxWordRuneLen[col] {
+				maxWordRuneLen[col] = n
+			}
 		}
 		d.rows = append(d.rows, row)
 		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colGrey))
@@ -144,6 +157,14 @@ func buildSheetData(sections []section) sheetData {
 		},
 	})
 
+	// Size each word column to fit the widest Greek word it contains without wrapping.
+	// The estimate uses 9 px per rune plus 16 px of cell padding at 12 pt font,
+	// with a 50 px minimum for very short words.
+	for col := 1; col < len(maxWordRuneLen); col++ {
+		px := max(int64(maxWordRuneLen[col])*9+16, 50)
+		d.colWidthReqs = append(d.colWidthReqs, colWidthReq(0, int64(col), px))
+	}
+
 	return d
 }
 
@@ -209,14 +230,19 @@ func textWrapReq(sr, sc, er, ec int64) *sheets.Request {
 }
 
 func narrowColAReq(sheetID int64) *sheets.Request {
+	return colWidthReq(sheetID, 0, 40)
+}
+
+// colWidthReq sets a single column to the given pixel width.
+func colWidthReq(sheetID, colIdx, pixelSize int64) *sheets.Request {
 	return &sheets.Request{UpdateDimensionProperties: &sheets.UpdateDimensionPropertiesRequest{
 		Range: &sheets.DimensionRange{
 			SheetId:    sheetID,
 			Dimension:  "COLUMNS",
-			StartIndex: 0,
-			EndIndex:   1,
+			StartIndex: colIdx,
+			EndIndex:   colIdx + 1,
 		},
-		Properties: &sheets.DimensionProperties{PixelSize: 40},
+		Properties: &sheets.DimensionProperties{PixelSize: pixelSize},
 		Fields:     "pixelSize",
 	}}
 }
@@ -268,4 +294,5 @@ func patchSheetID(d *sheetData, id int64) {
 	patchReqs(d.boldRequests)
 	patchReqs(d.alignVertReqs)
 	patchReqs(d.textWrapReqs)
+	patchReqs(d.colWidthReqs)
 }

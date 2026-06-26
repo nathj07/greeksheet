@@ -83,6 +83,7 @@ func populateTab(ctx context.Context, sheetsSvc *sheets.Service, spreadsheetID, 
 	allReqs = append(allReqs, d.boldRequests...)
 	allReqs = append(allReqs, d.alignVertReqs...)
 	allReqs = append(allReqs, d.textWrapReqs...)
+	allReqs = append(allReqs, d.colWidthReqs...)
 	allReqs = append(allReqs, narrowColAReq(sheetID))
 	allReqs = append(allReqs, fontSizeReq(sheetID, 12))
 	allReqs = append(allReqs, textNumberFormatReq(sheetID))
