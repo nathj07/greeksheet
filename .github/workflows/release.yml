@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build macOS (Apple Silicon)
+        run: GOOS=darwin GOARCH=arm64 go build -o greeksheet-darwin-arm64 .
+
+      - name: Build Windows
+        run: GOOS=windows GOARCH=amd64 go build -o greeksheet-windows-amd64.exe .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            greeksheet-darwin-arm64
+            greeksheet-windows-amd64.exe
+          generate_release_notes: true

@@ -13,6 +13,41 @@ translation practice. It supports two input modes and three fetch strategies:
   create one Google Sheets tab per chapter, useful for whole-book or multi-chapter
   study ranges like `"Ephesians 1-6"`.
 
+## Download
+
+Pre-built binaries for macOS (Apple Silicon) and Windows are attached to every
+[GitHub Release](https://github.com/nathj07/greeksheet/releases/latest).
+
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon / M-series) | `greeksheet-darwin-arm64` |
+| Windows | `greeksheet-windows-amd64.exe` |
+
+**macOS** — after downloading, mark the binary as executable and run it:
+
+```bash
+chmod +x greeksheet-darwin-arm64
+./greeksheet-darwin-arm64 [flags]
+```
+
+> **macOS security note:** the first time you run the binary, macOS may block it.
+> If so, go to *System Settings → Privacy & Security* and click **Open Anyway**.
+
+**Windows** — run from PowerShell or CMD:
+
+```
+greeksheet-windows-amd64.exe [flags]
+```
+
+### Build from source
+
+If you prefer to compile yourself, you need Go 1.21 or later:
+
+```bash
+go build -o greeksheet .
+./greeksheet [flags]
+```
+
 ## What it produces
 
 For each verse the sheet contains six rows:
@@ -38,9 +73,9 @@ Generated using `./greeksheet -sheet-id <my-sheet-id> -ref "John 9:1-23"`, detai
 
 ## Prerequisites
 
-- Go 1.21 or later
 - A Google account
 - A Google Cloud OAuth 2.0 **client secrets** file (see below)
+- Go 1.21 or later *(only required if building from source)*
 
 ## Getting a client secrets file
 
@@ -130,15 +165,26 @@ use the `ch:v-v` format above.
 
 ## Usage
 
-```
-go run . [flags]
+Run the downloaded binary directly:
+
+```bash
+# macOS
+./greeksheet-darwin-arm64 [flags]
+
+# Windows
+greeksheet-windows-amd64.exe [flags]
 ```
 
-Or build first and then run the binary:
+If you built from source, use your own binary name:
 
-```
-go build -o greeksheet .
+```bash
 ./greeksheet [flags]
+```
+
+Or run without building:
+
+```bash
+go run . [flags]
 ```
 
 Exactly one of `-input` or `-ref` must be supplied.
