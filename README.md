@@ -17,14 +17,15 @@ translation practice. It supports two input modes and three fetch strategies:
 
 For each verse the sheet contains six rows:
 
-| Row label | Colour | Purpose |
-|-----------|--------|---------|
-| *(verse number + words)* | Grey | The Greek text, one word per cell |
-| *(unlabelled × 2)* | *(plain)* | Per-word parsing and individual word-choice work — one cell per Greek word |
+| Row label | Colour | Purpose                                                                                         |
+|-----------|--------|-------------------------------------------------------------------------------------------------|
+| *(verse number + words)* | Grey | The Greek text, one word per cell                                                               |
+| *(unlabelled × 2)* | *(plain)* | Per-word parsing and individual word-choice work — one cell per Greek word                      |
+ | **O** | Blue | Original — The original Greek text for the verse; merged across all word columns                |
 | **I** | Orange | Intermediary — assemble your word choices into a coherent verse; merged across all word columns |
-| **T** | Green | Final translation — write your polished English translation; merged across all word columns |
-| **C** | *(plain)* | Commentary notes, merged across all word columns |
-| **N** | *(plain)* | General notes, merged across all word columns |
+| **T** | Green | Final translation — write your polished English translation; merged across all word columns     |
+| **C** | *(plain)* | Commentary notes, merged across all word columns                                                |
+| **N** | *(plain)* | General notes, merged across all word columns                                                   |
 
 Chapter boundaries appear as bold number rows that group the verses beneath
 them. In file mode these come from `#` heading lines; in fetch mode they are
