@@ -83,9 +83,9 @@ func tokenCachePath() (string, error) {
 }
 
 // loadCachedToken reads a previously saved OAuth2 token from disk.
-// Returns nil on any failure — cache miss, unreadable file, or corrupt JSON.
-// The caller typically ignores the error and falls back to a browser flow.
-func loadCachedToken() (*oauth2.Token, error) {
+// On any failure (cache miss, unreadable file, or corrupt JSON) it returns a nil
+// token and a non-nil error. Callers that want best-effort caching can ignore
+// the error and fall back to a browser flow.
 	path, err := tokenCachePath()
 	if err != nil {
 		return nil, err
