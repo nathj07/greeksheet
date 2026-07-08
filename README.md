@@ -91,7 +91,7 @@ is silent — no browser, no extra steps.
 > appear on the next run. You can also revoke access at any time from your
 > [Google Account security page](https://myaccount.google.com/permissions).
 
-This token should last 6 months, after which you will need to re-authenticate.
+Refresh tokens are typically valid for ~6 months of inactivity; if yours expires (or is revoked), the next run will ask you to re-authenticate.
 
 ## Input modes
 
