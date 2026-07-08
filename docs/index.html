@@ -670,20 +670,6 @@
         <div class="faq-list">
 
           <details>
-            <summary>Is it safe to have OAuth credentials compiled into the binary?</summary>
-            <div class="faq-body">
-              <p>Yes.
-                 <a href="https://developers.google.com/identity/protocols/oauth2/native-app">
-                   Google's own guidance for installed apps
-                 </a>
-                 acknowledges that a client secret embedded in a desktop binary
-                 cannot be kept truly secret — and that's fine. The secret alone
-                 cannot be used to access any account; only the user who clicks
-                 Allow on the consent screen grants access.</p>
-            </div>
-          </details>
-
-          <details>
             <summary>Where is my auth token stored?</summary>
             <div class="faq-body">
               <p>After you approve access, the token is written to:</p>
