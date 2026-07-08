@@ -11,7 +11,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// setTempHome redirects both HOME and XDG_CONFIG_HOME to a fresh temp directory
+// setTempHome redirects HOME to a fresh temp directory and unsets XDG_CONFIG_HOME
 // so that os.UserConfigDir() always resolves into the test sandbox.
 func setTempHome(t *testing.T) {
 	t.Helper()
