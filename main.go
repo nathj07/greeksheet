@@ -3,25 +3,25 @@ Creates a Greek NT translation-practice spreadsheet in Google Sheets.
 
 There are two input modes — exactly one must be provided:
 
-  -input <file>
-	Read verses from a plain text file copied from greekbible.com.
-	Lines beginning with '#' become bold chapter-heading rows (the '#' is
-	stripped). All other non-blank lines are treated as a block of verses in
-	the greekbible.com inline format:
+	  -input <file>
+		Read verses from a plain text file copied from greekbible.com.
+		Lines beginning with '#' become bold chapter-heading rows (the '#' is
+		stripped). All other non-blank lines are treated as a block of verses in
+		the greekbible.com inline format:
 
-		1 word word word. 2 word word...
+			1 word word word. 2 word word...
 
-  -ref "<Book ch:v-v>"
-	Fetch Greek text directly from greekbible.com for the given reference
-	range. Supports same-chapter ranges ("John 1:1-10") and cross-chapter
-	ranges ("John 1:50-2:10"). One HTTP request is made per chapter; verses
-	are filtered in-process to the requested range.
+	  -ref "<Book ch:v-v>"
+		Fetch Greek text directly from greekbible.com for the given reference
+		range. Supports same-chapter ranges ("John 1:1-10") and cross-chapter
+		ranges ("John 1:50-2:10"). One HTTP request is made per chapter; verses
+		are filtered in-process to the requested range.
 
-  -ref "<Book ch-ch>" -chapter-per-tab
-	Fetch entire chapters from greekbible.com, creating one Google Sheets tab
-	per chapter. Each tab is named by chapter number ("1", "2", …). Use
-	-sheet-id to add tabs to an existing spreadsheet, or omit it to create a
-	new one.
+	  -ref "<Book ch-ch>" -chapter-per-tab
+		Fetch entire chapters from greekbible.com, creating one Google Sheets tab
+		per chapter. Each tab is named by chapter number ("1", "2", …). Use
+		-sheet-id to add tabs to an existing spreadsheet, or omit it to create a
+		new one.
 
 Example input file (e.g. practice.txt):
 
@@ -46,7 +46,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http"
@@ -56,17 +55,10 @@ import (
 	"time"
 )
 
-// clientSecretJSON is used only to validate the secrets file at startup.
-type clientSecretJSON struct {
-	Installed *struct{} `json:"installed"`
-	Web       *struct{} `json:"web"`
-}
-
 type config struct {
 	InputFile     string
 	Ref           string // non-empty = fetch mode; mutually exclusive with InputFile
 	Title         string
-	SecretsFile   string
 	SheetID       string // non-empty = add a tab to this existing spreadsheet
 	FolderID      string // non-empty = create the new spreadsheet inside this Drive folder
 	ChapterPerTab bool   // create one tab per chapter (requires whole-chapter ref format)
@@ -88,7 +80,6 @@ func start(args []string) error {
 	inputFile := flags.String("input", "", "Path to the input text file of Greek verses")
 	refFlag := flags.String("ref", "", "Reference range to fetch from greekbible.com, e.g. \"John 1:1-10\", \"John 1:50-2:10\", or (with -chapter-per-tab) \"Ephesians 1-6\"")
 	title := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename or ref)")
-	secretsFile := flags.String("secrets", "client_secret.json", "Path to the Google OAuth2 client secrets JSON file")
 	sheetID := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
 	folderID := flags.String("folder-id", "", "Google Drive folder ID to create the new spreadsheet in (optional; find it in the folder's URL)")
 	chapterPerTab := flags.Bool("chapter-per-tab", false, "Create one tab per chapter; use with a whole-chapter ref like \"Ephesians 1-6\"")
@@ -97,7 +88,7 @@ func start(args []string) error {
 	}
 
 	if *inputFile == "" && *refFlag == "" {
-		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-secrets <path>] [-chapter-per-tab]", args[0])
+		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-chapter-per-tab]", args[0])
 	}
 	if *inputFile != "" && *refFlag != "" {
 		return fmt.Errorf("-input and -ref are mutually exclusive: provide one or the other, not both")
@@ -116,7 +107,6 @@ func start(args []string) error {
 		InputFile:     *inputFile,
 		Ref:           *refFlag,
 		Title:         *title,
-		SecretsFile:   *secretsFile,
 		SheetID:       *sheetID,
 		FolderID:      *folderID,
 		ChapterPerTab: *chapterPerTab,
@@ -150,22 +140,8 @@ func (a *app) run(ctx context.Context) error {
 		err      error
 	)
 
-	// Validate secrets file before opening the browser — fail fast with a clear
-	// error rather than prompting for auth then crashing.
-	secretData, err := os.ReadFile(a.conf.SecretsFile)
-	if err != nil {
-		return fmt.Errorf("client_secret.json not found at %s: %w", a.conf.SecretsFile, err)
-	}
-	var csj clientSecretJSON
-	if err := json.Unmarshal(secretData, &csj); err != nil {
-		return fmt.Errorf("invalid client_secret.json: %w", err)
-	}
-	if csj.Installed == nil && csj.Web == nil {
-		return fmt.Errorf("client_secret.json must contain an 'installed' or 'web' key")
-	}
-
 	fmt.Println("Authenticating with Google…")
-	httpClient, err := authenticate(ctx, a.conf.SecretsFile)
+	httpClient, err := authenticate(ctx)
 	if err != nil {
 		return fmt.Errorf("authentication failed: %w", err)
 	}

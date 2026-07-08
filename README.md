@@ -56,7 +56,7 @@ For each verse the sheet contains six rows:
 |-----------|--------|-------------------------------------------------------------------------------------------------|
 | *(verse number + words)* | Grey | The Greek text, one word per cell                                                               |
 | *(unlabelled × 2)* | *(plain)* | Per-word parsing and individual word-choice work — one cell per Greek word                      |
- | **O** | Blue | Original — The original Greek text for the verse; merged across all word columns                |
+| **O** | Blue | Original — The original Greek text for the verse; merged across all word columns                |
 | **I** | Orange | Intermediary — assemble your word choices into a coherent verse; merged across all word columns |
 | **T** | Green | Final translation — write your polished English translation; merged across all word columns     |
 | **C** | *(plain)* | Commentary notes, merged across all word columns                                                |

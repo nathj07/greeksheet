@@ -17,11 +17,23 @@ jobs:
         with:
           go-version-file: go.mod
 
+      # Credentials are stored as repository secrets and injected here so they
+      # never appear in source. The ldflags set the package-level vars declared
+      # in auth.go. For desktop OAuth2 apps the secret is not truly secret —
+      # see https://developers.google.com/identity/protocols/oauth2/native-app
       - name: Build macOS (Apple Silicon)
-        run: GOOS=darwin GOARCH=arm64 go build -o greeksheet-darwin-arm64 .
+        env:
+          LDFLAGS: >-
+            -X main.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
+            -X main.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o greeksheet-darwin-arm64 .
 
       - name: Build Windows
-        run: GOOS=windows GOARCH=amd64 go build -o greeksheet-windows-amd64.exe .
+        env:
+          LDFLAGS: >-
+            -X main.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
+            -X main.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o greeksheet-windows-amd64.exe .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
