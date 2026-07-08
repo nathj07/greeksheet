@@ -56,7 +56,7 @@ For each verse the sheet contains six rows:
 |-----------|--------|-------------------------------------------------------------------------------------------------|
 | *(verse number + words)* | Grey | The Greek text, one word per cell                                                               |
 | *(unlabelled × 2)* | *(plain)* | Per-word parsing and individual word-choice work — one cell per Greek word                      |
- | **O** | Blue | Original — The original Greek text for the verse; merged across all word columns                |
+| **O** | Blue | Original — The original Greek text for the verse; merged across all word columns                |
 | **I** | Orange | Intermediary — assemble your word choices into a coherent verse; merged across all word columns |
 | **T** | Green | Final translation — write your polished English translation; merged across all word columns     |
 | **C** | *(plain)* | Commentary notes, merged across all word columns                                                |
@@ -74,30 +74,24 @@ Generated using `./greeksheet -sheet-id <my-sheet-id> -ref "John 9:1-23"`, detai
 ## Prerequisites
 
 - A Google account
-- A Google Cloud OAuth 2.0 **client secrets** file (see below)
 - Go 1.21 or later *(only required if building from source)*
 
-## Getting a client secrets file
+## Authentication
 
-The tool needs permission to create Google Sheets and set their sharing on
-your behalf. You grant this once by creating an OAuth 2.0 app in Google Cloud:
+The first time you run greeksheet a browser tab opens asking you to sign in
+and approve the requested permissions. After you click **Allow**, the tab
+shows "Authentication successful — you can close this tab." and the tool
+continues automatically.
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and
-   create a new project (or select an existing one).
-2. Enable the **Google Sheets API** and the **Google Drive API** for that
-   project (*APIs & Services → Library*).
-3. Go to *APIs & Services → Credentials* and click **Create Credentials →
-   OAuth client ID**.
-4. Choose **Desktop app** as the application type, give it any name, and click
-   **Create**.
-5. Download the JSON file that appears — this is your `client_secret.json`.
-6. Place the file in the same directory as the tool, or pass its path with the
-   `-secrets` flag (see below).
+The token is cached at `~/.config/greeksheet/token.json` (macOS:
+`~/Library/Application Support/greeksheet/token.json`). Every subsequent run
+is silent — no browser, no extra steps.
 
-> **Note:** the first time you run the tool, a browser tab will open asking
-> you to sign in and approve the requested permissions. After you approve,
-> the tab shows "Authentication successful — you can close this tab." and the
-> tool continues automatically.
+> **Revoking access:** delete the token file above and the browser prompt will
+> appear on the next run. You can also revoke access at any time from your
+> [Google Account security page](https://myaccount.google.com/permissions).
+
+Refresh tokens are typically valid for ~6 months of inactivity; if yours expires (or is revoked), the next run will ask you to re-authenticate.
 
 ## Input modes
 
@@ -199,7 +193,6 @@ Exactly one of `-input` or `-ref` must be supplied.
 | `-title` | input filename (without extension), or the ref string | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
 | `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to (**mutually exclusive with `-folder-id`**) |
 | `-folder-id` | *(omit to create in Drive root)* | Google Drive folder ID to create the **new** spreadsheet inside (**mutually exclusive with `-sheet-id`**) |
-| `-secrets` | `client_secret.json` | Path to your OAuth 2.0 client secrets file |
 
 ### Finding a spreadsheet ID
 
@@ -265,24 +258,36 @@ go run . -ref "John 1:1-14" -title "John 1" -folder-id <FOLDER ID FROM DRIVE URL
 
 # Chapter-per-tab — create a new spreadsheet in a specific Drive folder
 go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians" -folder-id <FOLDER ID FROM DRIVE URL>
-
-# Secrets file lives somewhere else
-go run . -input 1cor13.txt -secrets ~/keys/my_secret.json
 ```
 
 ## Output
 
 ### Verse-range fetch (`-ref`)
 
+First run (browser opens once):
+
 ```
+Authenticating with Google…
+Opening browser for Google authentication…
+  https://accounts.google.com/o/oauth2/auth?…
+
 Fetching Greek text for "John 1:1-14" from greekbible.com…
   Fetching John chapter 1…
 Parsed 14 verses
+…
+
+Done! Open your sheet at:
+  https://docs.google.com/spreadsheets/d/<sheet-id>
+```
+
+Subsequent runs (silent auth):
+
+```
 Authenticating with Google…
-Opening browser for Google authentication…
-Created: https://docs.google.com/spreadsheets/d/<sheet-id>
-Written 98 rows × 19 cols
-Formatting applied.
+Fetching Greek text for "John 1:1-14" from greekbible.com…
+  Fetching John chapter 1…
+Parsed 14 verses
+…
 
 Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
@@ -291,14 +296,11 @@ Done! Open your sheet at:
 ### Chapter-per-tab (`-ref … -chapter-per-tab`)
 
 ```
+Authenticating with Google…
 Fetching Ephesians chapters 1–6 from greekbible.com…
-  Fetching Ephesians chapter 1…
   Chapter 1: 23 verses
 …
-  Fetching Ephesians chapter 6…
   Chapter 6: 24 verses
-Authenticating with Google…
-…
 
 Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>greeksheet — Greek NT practice sheets for Google Sheets</title>
+  <meta name="description" content="A command-line tool that builds beautifully formatted Greek New Testament practice spreadsheets in Google Sheets. One download, one browser click, then completely silent.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nathj07.github.io/greeksheet/">
+  <meta property="og:title" content="greeksheet — Greek NT practice sheets for Google Sheets">
+  <meta property="og:description" content="A command-line tool that builds beautifully formatted Greek New Testament practice spreadsheets in Google Sheets. One download, one browser click, then completely silent.">
+  <meta property="og:image" content="https://nathj07.github.io/greeksheet/images/screenshot.png">
+  <meta property="og:image:width" content="2115">
+  <meta property="og:image:height" content="701">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="greeksheet — Greek NT practice sheets for Google Sheets">
+  <meta name="twitter:description" content="One download, one browser click, then completely silent.">
+  <meta name="twitter:image" content="https://nathj07.github.io/greeksheet/images/screenshot.png">
+
+  <link rel="canonical" href="https://nathj07.github.io/greeksheet/">
+
+  <!-- Inline SVG favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>α</text></svg>">
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "greeksheet",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "macOS, Linux, Windows",
+    "description": "Command-line tool that builds formatted Greek New Testament practice spreadsheets in Google Sheets.",
+    "url": "https://nathj07.github.io/greeksheet/",
+    "downloadUrl": "https://github.com/nathj07/greeksheet/releases/latest",
+    "license": "https://opensource.org/licenses/MIT",
+    "codeRepository": "https://github.com/nathj07/greeksheet",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:        #15803d;
+      --green-dark:   #166534;
+      --green-light:  #f0fdf4;
+      --text:         #111827;
+      --text-muted:   #6b7280;
+      --border:       #e5e7eb;
+      --bg:           #ffffff;
+      --bg-subtle:    #f9fafb;
+      --radius:       8px;
+      --radius-lg:    12px;
+      --shadow:       0 1px 3px 0 rgb(0 0 0 / .10), 0 1px 2px -1px rgb(0 0 0 / .10);
+      --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / .10), 0 4px 6px -4px rgb(0 0 0 / .10);
+      --max-w:        1060px;
+      --font:         system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono:         ui-monospace, 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    /* ── Skip link ────────────────────────────────────────────────── */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 1rem;
+      padding: .5rem 1rem;
+      background: var(--green);
+      color: #fff;
+      border-radius: 0 0 var(--radius) var(--radius);
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 100;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* ── Layout helpers ───────────────────────────────────────────── */
+    .container {
+      max-width: var(--max-w);
+      margin-inline: auto;
+      padding-inline: 1.5rem;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      background: rgb(255 255 255 / .92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      z-index: 50;
+    }
+
+    header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 3.5rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -.01em;
+    }
+    .logo-icon {
+      font-size: 1.4rem;
+      color: var(--green);
+    }
+    .logo:hover .logo-icon { color: var(--green-dark); }
+
+    nav a {
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: .25rem .5rem;
+      border-radius: var(--radius);
+      transition: color .15s, background .15s;
+    }
+    nav a:hover { color: var(--text); background: var(--bg-subtle); }
+    nav a:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────────── */
+    #hero {
+      padding-block: 5rem 3.5rem;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--green);
+      background: var(--green-light);
+      border: 1px solid #bbf7d0;
+      border-radius: 99px;
+      padding: .2rem .75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    #hero h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.03em;
+      color: var(--text);
+      max-width: 720px;
+      margin-inline: auto;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-sub {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin-inline: auto;
+      margin-bottom: 2.25rem;
+    }
+
+    .cta-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      justify-content: center;
+      margin-bottom: 3.5rem;
+    }
+
+    /* Primary button */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .75rem 1.5rem;
+      background: var(--green);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: var(--radius);
+      text-decoration: none;
+      transition: background .15s, box-shadow .15s;
+      box-shadow: var(--shadow);
+    }
+    .btn-primary:hover { background: var(--green-dark); box-shadow: var(--shadow-lg); }
+    .btn-primary:focus-visible {
+      outline: 3px solid var(--green);
+      outline-offset: 3px;
+    }
+
+    /* Secondary button */
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .75rem 1.5rem;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-decoration: none;
+      transition: background .15s, border-color .15s;
+      box-shadow: var(--shadow);
+    }
+    .btn-secondary:hover { background: var(--bg-subtle); border-color: #d1d5db; }
+    .btn-secondary:focus-visible {
+      outline: 3px solid var(--green);
+      outline-offset: 3px;
+    }
+
+    .btn-icon { font-size: 1.1em; }
+
+    /* Platform badges */
+    .platform-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+      justify-content: center;
+      margin-top: -.75rem;
+      margin-bottom: 3.5rem;
+    }
+    .badge {
+      font-size: .75rem;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: .15rem .6rem;
+    }
+
+    /* Screenshot */
+    .screenshot-wrap {
+      max-width: 900px;
+      margin-inline: auto;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: 0 20px 60px -10px rgb(0 0 0 / .25);
+      border: 1px solid var(--border);
+    }
+    .screenshot-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* ── Features ─────────────────────────────────────────────────── */
+    #features {
+      background: var(--bg-subtle);
+      padding-block: 4.5rem;
+      border-block: 1px solid var(--border);
+    }
+
+    .section-label {
+      text-align: center;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: .75rem;
+    }
+
+    .section-heading {
+      text-align: center;
+      font-size: clamp(1.5rem, 3vw, 2.1rem);
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-bottom: 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .feature-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .feature-icon {
+      font-size: 1.75rem;
+      margin-bottom: .75rem;
+      display: block;
+      line-height: 1;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: .4rem;
+    }
+
+    .feature-card p {
+      font-size: .9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── How it works ─────────────────────────────────────────────── */
+    #how-it-works {
+      padding-block: 4.5rem;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1.5rem;
+      counter-reset: steps;
+    }
+
+    .step {
+      counter-increment: steps;
+      position: relative;
+      padding-left: 3rem;
+    }
+
+    .step::before {
+      content: counter(steps);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2rem;
+      height: 2rem;
+      background: var(--green);
+      color: #fff;
+      font-weight: 700;
+      font-size: .85rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: .35rem;
+    }
+
+    .step p {
+      font-size: .9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .step code {
+      font-family: var(--mono);
+      font-size: .8rem;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .1em .35em;
+      color: var(--text);
+    }
+
+    .step pre {
+      margin-top: .6rem;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: var(--radius);
+      padding: .75rem 1rem;
+      font-family: var(--mono);
+      font-size: .78rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* ── FAQ ──────────────────────────────────────────────────────── */
+    #faq {
+      background: var(--bg-subtle);
+      padding-block: 4.5rem;
+      border-block: 1px solid var(--border);
+    }
+
+    .faq-list {
+      max-width: 680px;
+      margin-inline: auto;
+    }
+
+    details {
+      border-bottom: 1px solid var(--border);
+    }
+    details:first-of-type { border-top: 1px solid var(--border); }
+
+    summary {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-block: 1rem;
+      font-weight: 600;
+      font-size: .95rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+
+    summary::after {
+      content: '+';
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: transform .2s;
+    }
+    details[open] summary::after {
+      transform: rotate(45deg);
+    }
+
+    summary:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .faq-body {
+      padding-bottom: 1rem;
+      font-size: .9rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .faq-body code {
+      font-family: var(--mono);
+      font-size: .82rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .1em .35em;
+      color: var(--text);
+    }
+
+    .faq-body a {
+      color: var(--green);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .faq-body a:hover { color: var(--green-dark); }
+    .faq-body a:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    footer {
+      padding-block: 2rem;
+      text-align: center;
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: .25rem 1.25rem;
+      margin-bottom: .6rem;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    .footer-links a:hover { color: var(--text); }
+    .footer-links a:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
+      border-radius: 2px;
+    }
+
+    /* ── Responsive tweaks ────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      #hero { padding-block: 3.5rem 2.5rem; }
+      .cta-group { flex-direction: column; align-items: center; }
+      .btn-primary, .btn-secondary { width: 100%; max-width: 300px; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header>
+    <div class="container">
+      <a href="./" class="logo" aria-label="greeksheet home">
+        <span class="logo-icon" aria-hidden="true">α</span>
+        greeksheet
+      </a>
+      <nav aria-label="Site navigation">
+        <a href="https://github.com/nathj07/greeksheet">
+          GitHub
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+            <path d="M2 2h8v8M2.5 9.5 10 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ── Hero ────────────────────────────────────────────────────── -->
+    <section id="hero" aria-labelledby="hero-heading">
+      <div class="container">
+        <p class="hero-eyebrow">Open Source · Free · MIT licence</p>
+        <h1 id="hero-heading">
+          Greek NT practice sheets,<br>built in seconds
+        </h1>
+        <p class="hero-sub">
+          greeksheet creates beautifully formatted Google Sheets for verse-by-verse
+          translation practice — fetching text directly from greekbible.com.
+          No setup, no secrets file. Just download and run.
+        </p>
+
+        <div class="cta-group">
+          <a href="https://github.com/nathj07/greeksheet/releases/latest"
+             class="btn-primary"
+             aria-label="Download latest release of greeksheet">
+            <span class="btn-icon" aria-hidden="true">⬇</span>
+            Download Latest Release
+          </a>
+          <a href="https://github.com/nathj07/greeksheet"
+             class="btn-secondary"
+             aria-label="View greeksheet source code on GitHub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+              <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"/>
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+
+        <div class="platform-badges" aria-label="Supported platforms">
+          <span class="badge">macOS (Apple Silicon)</span>
+          <span class="badge">macOS (Intel)</span>
+          <span class="badge">Linux</span>
+          <span class="badge">Windows</span>
+        </div>
+
+        <div class="screenshot-wrap">
+          <img src="images/screenshot.png"
+               alt="A greeksheet spreadsheet open in Google Sheets, showing John 9:1–23 with Greek text in grey rows, blue Original rows, orange Intermediary rows, and green Translation rows — one set of rows per verse."
+               width="900" height="298"
+               loading="eager"
+               decoding="async">
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Features ────────────────────────────────────────────────── -->
+    <section id="features" aria-labelledby="features-heading">
+      <div class="container">
+        <p class="section-label" aria-hidden="true">Features</p>
+        <h2 id="features-heading" class="section-heading">
+          Everything you need. Nothing you don't.
+        </h2>
+
+        <ul class="features-grid">
+          <li class="feature-card">
+            <span class="feature-icon" aria-hidden="true">🔒</span>
+            <h3>No setup required</h3>
+            <p>No Google Cloud project. No secrets file. OAuth credentials
+               are compiled into the binary — safe by design for desktop apps.</p>
+          </li>
+          <li class="feature-card">
+            <span class="feature-icon" aria-hidden="true">🖱️</span>
+            <h3>One-time sign-in</h3>
+            <p>The browser opens once so you can click Allow. After that the
+               token is cached locally and every run is completely silent.</p>
+          </li>
+          <li class="feature-card">
+            <span class="feature-icon" aria-hidden="true">📥</span>
+            <h3>Fetch or paste</h3>
+            <p>Fetch Greek text directly from greekbible.com with
+               <code>-ref "John 1:1-14"</code>, or point at a text file with
+               <code>-input</code>. No copy-pasting required.</p>
+          </li>
+          <li class="feature-card">
+            <span class="feature-icon" aria-hidden="true">📊</span>
+            <h3>Per-verse layout</h3>
+            <p>Each verse gets Greek text, two parsing rows, an Original row,
+               Intermediary, final Translation, Commentary, and Notes —
+               everything you need in one place.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── How it works ─────────────────────────────────────────────── -->
+    <section id="how-it-works" aria-labelledby="how-heading">
+      <div class="container">
+        <p class="section-label" aria-hidden="true">How it works</p>
+        <h2 id="how-heading" class="section-heading">
+          From command line to Google Sheets in four steps
+        </h2>
+
+        <ol class="steps">
+          <li class="step">
+            <h3>Download</h3>
+            <p>Grab the binary for your platform from the
+               <a href="https://github.com/nathj07/greeksheet/releases/latest">latest release</a>.
+               macOS users: <code>chmod +x</code> then run. On first launch, approve it
+               in <em>System Settings → Privacy &amp; Security</em>.</p>
+          </li>
+          <li class="step">
+            <h3>Run</h3>
+            <p>Pass a reference range or an input file:</p>
+            <pre aria-label="Example command: fetch John 1:1–14">./greeksheet -ref "John 1:1-14" \
+  -title "John 1"</pre>
+          </li>
+          <li class="step">
+            <h3>Authorise</h3>
+            <p>Your browser opens the Google consent screen. Click <strong>Allow</strong>.
+               The tab shows "Authentication successful" and closes. This happens
+               only once — the token is cached for future runs.</p>
+          </li>
+          <li class="step">
+            <h3>Open your sheet</h3>
+            <p>greeksheet prints the link:</p>
+            <pre aria-label="Example output with sheet URL">Done! Open your sheet at:
+  https://docs.google.com/…</pre>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── FAQ ──────────────────────────────────────────────────────── -->
+    <section id="faq" aria-labelledby="faq-heading">
+      <div class="container">
+        <p class="section-label" aria-hidden="true">FAQ</p>
+        <h2 id="faq-heading" class="section-heading">Common questions</h2>
+
+        <div class="faq-list">
+
+          <details>
+            <summary>Is it safe to have OAuth credentials compiled into the binary?</summary>
+            <div class="faq-body">
+              <p>Yes.
+                 <a href="https://developers.google.com/identity/protocols/oauth2/native-app">
+                   Google's own guidance for installed apps
+                 </a>
+                 acknowledges that a client secret embedded in a desktop binary
+                 cannot be kept truly secret — and that's fine. The secret alone
+                 cannot be used to access any account; only the user who clicks
+                 Allow on the consent screen grants access.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>Where is my auth token stored?</summary>
+            <div class="faq-body">
+              <p>After you approve access, the token is written to:</p>
+              <ul style="margin-block: .5rem; padding-left: 1.25rem;">
+                <li><strong>macOS:</strong> <code>~/Library/Application Support/greeksheet/token.json</code></li>
+                <li><strong>Linux:</strong> <code>~/.config/greeksheet/token.json</code></li>
+                <li><strong>Windows:</strong> <code>%APPDATA%\greeksheet\token.json</code></li>
+              </ul>
+              <p>The file is readable only by your user account (mode <code>0600</code>).</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>How do I revoke access or sign out?</summary>
+            <div class="faq-body">
+              <p>Delete the token file listed above. The next run will open the browser
+                 again. You can also revoke at any time from
+                 <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>
+                 — look for <em>greeksheet</em> in the list of connected apps.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>Will it access my existing Google Drive files?</summary>
+            <div class="faq-body">
+              <p>No. greeksheet only creates new spreadsheets (or adds tabs to one
+                 you explicitly point it at with <code>-sheet-id</code>). It requests
+                 Drive scope solely to let you place new sheets inside a specific
+                 folder with <code>-folder-id</code>. It never reads, lists, or modifies
+                 any of your existing files.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>macOS says the app is from an unidentified developer.</summary>
+            <div class="faq-body">
+              <p>This is standard macOS Gatekeeper behaviour for unsigned binaries.
+                 To run it:</p>
+              <ol style="margin-block: .5rem; padding-left: 1.25rem; line-height: 1.8;">
+                <li>Open <em>System Settings → Privacy &amp; Security</em>.</li>
+                <li>Scroll down to the section about the blocked app and click <strong>Open Anyway</strong>.</li>
+                <li>Confirm in the dialog that appears.</li>
+              </ol>
+              <p>You only need to do this once per binary version.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>What happens when my token expires?</summary>
+            <div class="faq-body">
+              <p>Google issues a refresh token alongside the access token. Access tokens
+                 expire after one hour, but greeksheet passes the refresh token to the
+                 OAuth2 library, which renews silently without opening a browser.
+                 Refresh tokens themselves are valid for approximately six months of
+                 inactivity. If yours expires, the next run simply opens the browser
+                 once more.</p>
+            </div>
+          </details>
+
+        </div><!-- /.faq-list -->
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <nav class="footer-links" aria-label="Footer links">
+        <a href="https://github.com/nathj07/greeksheet">GitHub</a>
+        <a href="https://github.com/nathj07/greeksheet/releases/latest">Releases</a>
+        <a href="https://github.com/nathj07/greeksheet/blob/main/LICENSE">MIT Licence</a>
+        <a href="https://github.com/nathj07/greeksheet/issues">Issues</a>
+      </nav>
+      <p>Built with Go · Hosted on GitHub Pages</p>
+    </div>
+  </footer>
+
+</body>
+</html>

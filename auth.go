@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
@@ -17,21 +20,108 @@ const (
 	scopeDrive  = "https://www.googleapis.com/auth/drive"
 )
 
-// authenticate performs the OAuth2 browser flow using a local redirect server
-// (matching the pattern Google's own Python library uses with run_local_server).
-// It starts a temporary HTTP server on a random port, opens the consent URL in
-// the user's browser, and waits for Google to redirect back with the auth code.
-func authenticate(ctx context.Context, secretsFile string) (*http.Client, error) {
-	secretData, err := os.ReadFile(secretsFile)
-	if err != nil {
-		return nil, fmt.Errorf("reading client secrets: %w", err)
+// embeddedClientID and embeddedClientSecret are set at build time via
+//
+//	-ldflags "-X main.embeddedClientID=<id> -X main.embeddedClientSecret=<secret>"
+//
+// They are empty in the source tree so that the credentials are never committed.
+// For desktop OAuth2 apps the secret is not truly secret by design —
+// see https://developers.google.com/identity/protocols/oauth2/native-app
+var (
+	embeddedClientID     string
+	embeddedClientSecret string
+)
+
+// oauthConfig resolves OAuth credentials and returns a fresh *oauth2.Config.
+// It tries three sources in priority order:
+//  1. Variables injected at build time via -ldflags (used in release binaries).
+//  2. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET environment variables (CI / testing).
+//  3. client_secret.json in the working directory (local development).
+//
+// A fresh struct is returned on each call so that doBrowserFlow can safely
+// set RedirectURL without affecting other callers.
+func oauthConfig() (*oauth2.Config, error) {
+	id, secret := embeddedClientID, embeddedClientSecret
+
+	if id == "" {
+		id = os.Getenv("GOOGLE_CLIENT_ID")
+	}
+	if secret == "" {
+		secret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	}
 
-	cfg, err := google.ConfigFromJSON(secretData, scopeSheets, scopeDrive)
-	if err != nil {
-		return nil, fmt.Errorf("parsing client secrets: %w", err)
+	if id != "" && secret != "" {
+		return &oauth2.Config{
+			ClientID:     id,
+			ClientSecret: secret,
+			Scopes:       []string{scopeSheets, scopeDrive},
+			Endpoint:     google.Endpoint,
+		}, nil
 	}
 
+	// Fall back to a local secrets file for developers building from source.
+	data, err := os.ReadFile("client_secret.json")
+	if err == nil {
+		return google.ConfigFromJSON(data, scopeSheets, scopeDrive)
+	}
+
+	return nil, fmt.Errorf(
+		"OAuth credentials not found: download a release binary (credentials are built in), " +
+			"set GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET environment variables, " +
+			"or place a client_secret.json file in the working directory")
+}
+
+// tokenCachePath returns the path where the OAuth2 token is cached between runs.
+// The file lives at $XDG_CONFIG_HOME/greeksheet/token.json (Unix) or
+// ~/Library/Application Support/greeksheet/token.json (macOS).
+func tokenCachePath() (string, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "greeksheet", "token.json"), nil
+}
+
+// loadCachedToken reads a previously saved OAuth2 token from disk.
+// On any failure (cache miss, unreadable file, or corrupt JSON) it returns a nil
+// token and a non-nil error. Callers that want best-effort caching can ignore
+// the error and fall back to a browser flow.
+	path, err := tokenCachePath()
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var t oauth2.Token
+	if err := json.Unmarshal(data, &t); err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+// saveCachedToken persists the OAuth2 token to disk with owner-only permissions.
+func saveCachedToken(t *oauth2.Token) error {
+	path, err := tokenCachePath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+	data, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0600) // owner read/write only
+}
+
+// doBrowserFlow opens the Google consent page in the user's default browser,
+// starts a temporary local server to receive the OAuth2 redirect, and exchanges
+// the resulting code for a token. It times out after 5 minutes.
+// cfg.RedirectURL is set to the local server's address before the browser opens.
+func doBrowserFlow(ctx context.Context, cfg *oauth2.Config) (*oauth2.Token, error) {
 	// Listen on a random available port so we can tell Google where to redirect.
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -68,19 +158,45 @@ func authenticate(ctx context.Context, secretsFile string) (*http.Client, error)
 		fmt.Fprintf(os.Stderr, "Could not open browser automatically: %v\nPlease open the URL above manually.\n", err)
 	}
 
-	var code string
 	select {
-	case code = <-codeCh:
-	case err = <-errCh:
+	case code := <-codeCh:
+		return cfg.Exchange(ctx, code)
+	case err := <-errCh:
 		return nil, fmt.Errorf("auth redirect error: %w", err)
 	case <-ctx.Done():
 		return nil, ctx.Err()
+	case <-time.After(5 * time.Minute):
+		return nil, fmt.Errorf("auth timeout: no response from browser within 5 minutes")
 	}
+}
 
-	token, err := cfg.Exchange(ctx, code)
+// authenticate returns an HTTP client authorised for Google Sheets and Drive.
+// On the first run it opens the browser for OAuth2 consent and caches the token
+// at the platform config directory (e.g. ~/.config/greeksheet/token.json).
+// Subsequent runs are silent: the cached refresh token avoids the browser entirely.
+func authenticate(ctx context.Context) (*http.Client, error) {
+	cfg, err := oauthConfig()
 	if err != nil {
-		return nil, fmt.Errorf("exchanging auth code: %w", err)
+		return nil, err
 	}
 
-	return cfg.Client(ctx, token), nil
+	// Use the cached token when available. We accept an expired access token as
+	// long as a refresh token is present — the oauth2 library will refresh
+	// silently, keeping reruns browser-free.
+	tok, _ := loadCachedToken()
+	if tok != nil && (tok.Valid() || tok.RefreshToken != "") {
+		return cfg.Client(ctx, tok), nil
+	}
+
+	// No usable cached token; open the browser once to get consent.
+	tok, err = doBrowserFlow(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := saveCachedToken(tok); err != nil {
+		return nil, fmt.Errorf("saving token cache: %w", err)
+	}
+
+	return cfg.Client(ctx, tok), nil
 }
