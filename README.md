@@ -309,6 +309,37 @@ Done! Open your sheet at:
 The sheet is automatically shared with "anyone with the link can edit", so you
 can open it on any device without extra steps.
 
+## Contributing
+
+Contributions are welcome. Here's what you need to know before opening a PR.
+
+### Prerequisites
+
+- Go 1.21 or later
+- A Google OAuth client secret for local testing — see [Build from source](#build-from-source) and [Authentication](#authentication)
+
+### Running tests locally
+
+```bash
+go build ./...
+go vet ./...
+go test ./...
+```
+
+All three commands must pass cleanly. The CI workflow enforces the same checks on every PR.
+
+### Submitting a change
+
+1. **Open an issue first** — describe the bug or feature so it can be discussed before any code is written. This avoids wasted effort if the approach needs to change.
+2. Fork the repo and create a branch from `main`
+3. Make your changes with tests where appropriate
+4. Open a pull request targeting `main` that:
+   - References the issue (e.g. `Closes #123` in the description)
+   - Includes a clear description of *what* changed and *why*
+   - Notes any non-obvious decisions or trade-offs
+
+CI will run automatically. A review from the repo owner is required before merging — you will be auto-assigned as a reviewer via CODEOWNERS.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
