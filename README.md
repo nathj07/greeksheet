@@ -330,9 +330,13 @@ All three commands must pass cleanly. The CI workflow enforces the same checks o
 
 ### Submitting a change
 
-1. Fork the repo and create a branch from `main`
-2. Make your changes with tests where appropriate
-3. Open a pull request targeting `main`
+1. **Open an issue first** — describe the bug or feature so it can be discussed before any code is written. This avoids wasted effort if the approach needs to change.
+2. Fork the repo and create a branch from `main`
+3. Make your changes with tests where appropriate
+4. Open a pull request targeting `main` that:
+   - References the issue (e.g. `Closes #123` in the description)
+   - Includes a clear description of *what* changed and *why*
+   - Notes any non-obvious decisions or trade-offs
 
 CI will run automatically. A review from the repo owner is required before merging — you will be auto-assigned as a reviewer via CODEOWNERS.
 
