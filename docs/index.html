@@ -194,7 +194,7 @@
       flex-wrap: wrap;
       gap: .75rem;
       justify-content: center;
-      margin-bottom: 3.5rem;
+      margin-bottom: 1.5rem;
     }
 
     /* Primary button */
@@ -248,7 +248,7 @@
       flex-wrap: wrap;
       gap: .4rem;
       justify-content: center;
-      margin-top: -.75rem;
+      margin-top: 0;
       margin-bottom: 3.5rem;
     }
     .badge {
@@ -264,6 +264,7 @@
     .screenshot-wrap {
       max-width: 900px;
       margin-inline: auto;
+      margin-bottom: 2.5rem;
       border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: 0 20px 60px -10px rgb(0 0 0 / .25);
@@ -507,6 +508,100 @@
       border-radius: 2px;
     }
 
+    /* ── Run instructions ─────────────────────────────────────────── */
+    .run-box {
+      max-width: 600px;
+      margin-inline: auto;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .run-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-subtle);
+    }
+
+    .run-tab {
+      flex: 1;
+      padding: .65rem 1rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .run-tab:hover { color: var(--text); }
+    .run-tab[aria-selected="true"] {
+      color: var(--green);
+      border-bottom-color: var(--green);
+      background: var(--bg);
+    }
+    .run-tab:focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: -2px;
+    }
+
+    .run-panel { padding: 1.25rem 1.5rem; }
+    .run-panel[hidden] { display: none; }
+
+    .run-panel ol {
+      padding-left: 1.4rem;
+      font-size: .9rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .run-panel li { margin-bottom: .8rem; }
+
+    .run-panel pre {
+      margin-top: .4rem;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: var(--radius);
+      padding: .6rem .9rem;
+      font-family: var(--mono);
+      font-size: .78rem;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .run-panel code {
+      font-family: var(--mono);
+      font-size: .82rem;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .1em .35em;
+      color: var(--text);
+    }
+
+    .run-panel kbd {
+      font-family: var(--mono);
+      font-size: .78rem;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: .15em .4em;
+      box-shadow: 0 1px 0 var(--border);
+    }
+
+    .run-note {
+      margin-top: .75rem;
+      font-size: .85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
     /* ── Responsive tweaks ────────────────────────────────────────── */
     @media (max-width: 600px) {
       #hero { padding-block: 3.5rem 2.5rem; }
@@ -550,6 +645,14 @@
           No setup, no secrets file. Just download and run.
         </p>
 
+        <div class="screenshot-wrap">
+          <img src="images/screenshot.png"
+               alt="A greeksheet spreadsheet open in Google Sheets, showing John 9:1–23 with Greek text in grey rows, blue Original rows, orange Intermediary rows, and green Translation rows — one set of rows per verse."
+               width="900" height="298"
+               loading="eager"
+               decoding="async">
+        </div>
+
         <div class="cta-group">
           <a href="https://github.com/nathj07/greeksheet/releases/latest"
              class="btn-primary"
@@ -567,20 +670,66 @@
           </a>
         </div>
 
+        <!-- Run instructions: tabbed box for Mac and Windows -->
+        <div class="run-box" role="region" aria-label="How to run greeksheet">
+          <div class="run-tabs" role="tablist" aria-label="Operating system">
+            <button class="run-tab" role="tab" id="tab-mac" aria-selected="true" aria-controls="panel-mac" tabindex="0">
+              🍎 macOS
+            </button>
+            <button class="run-tab" role="tab" id="tab-win" aria-selected="false" aria-controls="panel-win" tabindex="-1">
+              🪟 Windows
+            </button>
+          </div>
+
+          <div id="panel-mac" role="tabpanel" aria-labelledby="tab-mac" class="run-panel">
+            <ol>
+              <li>
+                <strong>Open Terminal</strong> — press <kbd>⌘ Space</kbd>, type <code>Terminal</code>,
+                press Return. Or: Finder → Applications → Utilities → Terminal.
+              </li>
+              <li>
+                <strong>Navigate to your Downloads folder:</strong>
+                <pre>cd ~/Downloads</pre>
+              </li>
+              <li>
+                <strong>Make the binary executable:</strong>
+                <pre>chmod +x greeksheet-darwin-arm64</pre>
+              </li>
+              <li>
+                <strong>Run greeksheet:</strong>
+                <pre>./greeksheet-darwin-arm64 -ref "John 1:1-14" -title "John 1"</pre>
+              </li>
+            </ol>
+            <p class="run-note">
+              First launch only: macOS may block the binary. Open
+              <em>System Settings → Privacy &amp; Security</em> and click <strong>Open Anyway</strong>.
+            </p>
+          </div>
+
+          <div id="panel-win" role="tabpanel" aria-labelledby="tab-win" class="run-panel" hidden>
+            <ol>
+              <li>
+                <strong>Open Command Prompt</strong> — press <kbd>Win</kbd>&thinsp;+&thinsp;<kbd>R</kbd>,
+                type <code>cmd</code>, press Enter. Or: search <em>Command Prompt</em> in the Start menu.
+              </li>
+              <li>
+                <strong>Navigate to your Downloads folder:</strong>
+                <pre>cd %USERPROFILE%\Downloads</pre>
+              </li>
+              <li>
+                <strong>Run greeksheet:</strong>
+                <pre>greeksheet-windows-amd64.exe -ref "John 1:1-14" -title "John 1"</pre>
+              </li>
+            </ol>
+          </div>
+        </div>
+
         <div class="platform-badges" aria-label="Supported platforms">
-          <span class="badge">macOS (Apple Silicon)</span>
-          <span class="badge">macOS (Intel)</span>
+          <span class="badge">macOS</span>
           <span class="badge">Linux</span>
           <span class="badge">Windows</span>
         </div>
 
-        <div class="screenshot-wrap">
-          <img src="images/screenshot.png"
-               alt="A greeksheet spreadsheet open in Google Sheets, showing John 9:1–23 with Greek text in grey rows, blue Original rows, orange Intermediary rows, and green Translation rows — one set of rows per verse."
-               width="900" height="298"
-               loading="eager"
-               decoding="async">
-        </div>
       </div>
     </section>
 
@@ -747,5 +896,43 @@
     </div>
   </footer>
 
+  <script>
+    // Tab switching for the run-instructions box.
+    // Implements the ARIA tabs pattern: click or arrow keys to switch, roving tabindex.
+    const runTabs = Array.from(document.querySelectorAll('.run-tab'));
+
+    function activateTab(tab) {
+      runTabs.forEach(t => {
+        t.setAttribute('aria-selected', 'false');
+        t.setAttribute('tabindex', '-1');
+      });
+      document.querySelectorAll('.run-panel').forEach(p => p.setAttribute('hidden', ''));
+
+      tab.setAttribute('aria-selected', 'true');
+      tab.setAttribute('tabindex', '0');
+      document.getElementById(tab.getAttribute('aria-controls')).removeAttribute('hidden');
+      tab.focus();
+    }
+
+    runTabs.forEach(tab => {
+      tab.addEventListener('click', () => activateTab(tab));
+      tab.addEventListener('keydown', e => {
+        const idx = runTabs.indexOf(e.currentTarget);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          activateTab(runTabs[(idx + 1) % runTabs.length]);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          activateTab(runTabs[(idx - 1 + runTabs.length) % runTabs.length]);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          activateTab(runTabs[0]);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          activateTab(runTabs[runTabs.length - 1]);
+        }
+      });
+    });
+  </script>
 </body>
 </html>

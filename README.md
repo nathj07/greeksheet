@@ -68,7 +68,7 @@ inserted automatically whenever the chapter changes.
 
 All text is set at 12 pt for comfortable reading of Greek characters.
 
-![Greeksheet screenshot](images/screenshot_example.png)
+![Greeksheet screenshot](docs/images/screenshot.png)
 Generated using `./greeksheet -sheet-id <my-sheet-id> -ref "John 9:1-23"`, details on the command, and the various flags it supports are provided below.
 
 ## Prerequisites
