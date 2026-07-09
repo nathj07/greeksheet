@@ -51,9 +51,13 @@ func withRetry(ctx context.Context, verbose bool, fn func() error) error {
 				"Sheets API rate limit (429); retrying in %v (attempt %d/%d)…\n",
 				delay.Round(time.Millisecond), attempt+1, maxRetryAttempts)
 		}
+		timer := time.NewTimer(delay)
 		select {
-		case <-time.After(delay):
+		case <-timer.C:
 		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
 			return ctx.Err()
 		}
 	}
