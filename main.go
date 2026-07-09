@@ -62,6 +62,7 @@ type config struct {
 	SheetID       string // non-empty = add a tab to this existing spreadsheet
 	FolderID      string // non-empty = create the new spreadsheet inside this Drive folder
 	ChapterPerTab bool   // create one tab per chapter (requires whole-chapter ref format)
+	Verbose       bool   // log Sheets API retry attempts to stderr
 }
 
 type app struct {
@@ -83,12 +84,13 @@ func start(args []string) error {
 	sheetID := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
 	folderID := flags.String("folder-id", "", "Google Drive folder ID to create the new spreadsheet in (optional; find it in the folder's URL)")
 	chapterPerTab := flags.Bool("chapter-per-tab", false, "Create one tab per chapter; use with a whole-chapter ref like \"Ephesians 1-6\"")
+	verbose := flags.Bool("verbose", false, "Log Sheets API retry attempts to stderr")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
 
 	if *inputFile == "" && *refFlag == "" {
-		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-chapter-per-tab]", args[0])
+		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-chapter-per-tab] [-verbose]", args[0])
 	}
 	if *inputFile != "" && *refFlag != "" {
 		return fmt.Errorf("-input and -ref are mutually exclusive: provide one or the other, not both")
@@ -110,6 +112,7 @@ func start(args []string) error {
 		SheetID:       *sheetID,
 		FolderID:      *folderID,
 		ChapterPerTab: *chapterPerTab,
+		Verbose:       *verbose,
 	}
 	if conf.SheetID != "" && *title != "" {
 		fmt.Fprintln(os.Stderr, "Warning: -title is ignored when -sheet-id is provided")
@@ -180,9 +183,9 @@ func (a *app) run(ctx context.Context) error {
 
 	var url string
 	if a.conf.SheetID != "" {
-		url, err = addTabToSpreadsheet(ctx, httpClient, a.conf.SheetID, tabName, d)
+		url, err = a.addTabToSpreadsheet(ctx, httpClient, a.conf.SheetID, tabName, d)
 	} else {
-		url, err = createSpreadsheet(ctx, httpClient, a.conf.Title, tabName, a.conf.FolderID, d)
+		url, err = a.createSpreadsheet(ctx, httpClient, tabName, d)
 	}
 	if err != nil {
 		return err
@@ -231,7 +234,7 @@ func (a *app) runChapterPerTab(ctx context.Context, httpClient *http.Client) err
 
 		if spreadsheetID == "" {
 			// First chapter — create the spreadsheet; subsequent chapters add tabs.
-			sheetURL, err = createSpreadsheet(ctx, httpClient, a.conf.Title, tabName, a.conf.FolderID, d)
+			sheetURL, err = a.createSpreadsheet(ctx, httpClient, tabName, d)
 			if err != nil {
 				return err
 			}
@@ -240,7 +243,7 @@ func (a *app) runChapterPerTab(ctx context.Context, httpClient *http.Client) err
 				return err
 			}
 		} else {
-			sheetURL, err = addTabToSpreadsheet(ctx, httpClient, spreadsheetID, tabName, d)
+			sheetURL, err = a.addTabToSpreadsheet(ctx, httpClient, spreadsheetID, tabName, d)
 			if err != nil {
 				return err
 			}
