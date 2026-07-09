@@ -193,6 +193,7 @@ Exactly one of `-input` or `-ref` must be supplied.
 | `-title` | input filename (without extension), or the ref string | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
 | `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to (**mutually exclusive with `-folder-id`**) |
 | `-folder-id` | *(omit to create in Drive root)* | Google Drive folder ID to create the **new** spreadsheet inside (**mutually exclusive with `-sheet-id`**) |
+| `-verbose` | `false` | Log Sheets API retry attempts (429 Too Many Requests) to stderr |
 
 ### Finding a spreadsheet ID
 
