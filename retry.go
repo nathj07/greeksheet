@@ -20,9 +20,9 @@ const (
 	// baseRetryDelay is the base wait for the first retry.
 	baseRetryDelay = time.Second
 
-	// sheetsCallDelay is the proactive pause inserted between consecutive
-	// Sheets API BatchUpdate calls to stay under the 60 writes/minute/user quota
-	// during normal operation.
+	// sheetsCallDelay is a best-effort pause inserted between consecutive
+	// Sheets API BatchUpdate calls to reduce burstiness and lower the chance of
+	// hitting the 60 writes/minute/user quota during normal operation.
 	sheetsCallDelay = 250 * time.Millisecond
 )
 
