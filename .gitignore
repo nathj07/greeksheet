@@ -1,6 +1,7 @@
 client_secret.json
 client_secret.json.orig
-greeksheet
-./idea
+/greeksheet
+/cmd/greeksheet/greeksheet
+.idea/
 notes.txt
 thoughts/*

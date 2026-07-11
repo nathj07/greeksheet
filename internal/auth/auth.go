@@ -1,4 +1,7 @@
-package main
+// Package auth handles Google OAuth2 authentication for the Sheets and Drive
+// APIs: resolving client credentials, running the browser consent flow, and
+// caching the resulting token between runs.
+package auth
 
 import (
 	"context"
@@ -171,11 +174,11 @@ func doBrowserFlow(ctx context.Context, cfg *oauth2.Config) (*oauth2.Token, erro
 	}
 }
 
-// authenticate returns an HTTP client authorised for Google Sheets and Drive.
+// Authenticate returns an HTTP client authorised for Google Sheets and Drive.
 // On the first run it opens the browser for OAuth2 consent and caches the token
 // at the platform config directory (e.g. ~/.config/greeksheet/token.json).
 // Subsequent runs are silent: the cached refresh token avoids the browser entirely.
-func authenticate(ctx context.Context) (*http.Client, error) {
+func Authenticate(ctx context.Context) (*http.Client, error) {
 	cfg, err := oauthConfig()
 	if err != nil {
 		return nil, err

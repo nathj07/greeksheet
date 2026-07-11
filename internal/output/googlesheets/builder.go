@@ -1,9 +1,10 @@
-package main
+package googlesheets
 
 import (
 	"fmt"
 	"strings"
 
+	"github.com/nathj07/greeksheet/internal/document"
 	"google.golang.org/api/sheets/v4"
 )
 
@@ -50,7 +51,7 @@ type sheetData struct {
 
 // buildSheetData converts parsed sections into row data and Sheets API
 // formatting requests (backgrounds, merges, bold headings).
-func buildSheetData(sections []section) sheetData {
+func buildSheetData(sections []document.Section) sheetData {
 	var d sheetData
 
 	// maxWordRuneLen[i] is the widest word (in runes) seen in 0-based column i.
@@ -58,16 +59,16 @@ func buildSheetData(sections []section) sheetData {
 	// only word columns starting at index 1 are ever written into this slice.
 	var maxWordRuneLen []int
 
-	addVerseBlock := func(v verse) {
-		wordCount := len(v.words)
+	addVerseBlock := func(v document.Verse) {
+		wordCount := len(v.Words)
 		firstWordCol := int64(1) // column B (0-indexed)
 		lastWordCol := int64(wordCount)
 
 		// Verse row — grey background, verse number in col A then words
 		r := int64(len(d.rows))
 		row := make([]any, 1+wordCount)
-		row[0] = v.num
-		for i, w := range v.words {
+		row[0] = v.Num
+		for i, w := range v.Words {
 			row[1+i] = w
 			col := 1 + i
 			for len(maxWordRuneLen) <= col {
@@ -86,7 +87,7 @@ func buildSheetData(sections []section) sheetData {
 
 		// O row — single merged cell holding the original Greek text for reference
 		r = int64(len(d.rows))
-		d.rows = append(d.rows, []any{"O", strings.Join(v.words, " ")})
+		d.rows = append(d.rows, []any{"O", strings.Join(v.Words, " ")})
 		d.bgRequests = append(d.bgRequests, bgReq(r, 0, r+1, lastWordCol+1, colBlue))
 		if wordCount > 1 {
 			d.mergeReqs = append(d.mergeReqs, mergeReq(r, firstWordCol, r+1, lastWordCol+1))
@@ -128,12 +129,12 @@ func buildSheetData(sections []section) sheetData {
 	}
 
 	for _, sec := range sections {
-		if sec.heading != "" {
+		if sec.Heading != "" {
 			r := int64(len(d.rows))
-			d.rows = append(d.rows, []any{sec.heading})
+			d.rows = append(d.rows, []any{sec.Heading})
 			d.boldRequests = append(d.boldRequests, boldReq(r, 0, r+1, 1))
 		} else {
-			for _, v := range sec.verses {
+			for _, v := range sec.Verses {
 				addVerseBlock(v)
 			}
 		}
