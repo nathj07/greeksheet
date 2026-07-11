@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nathj07/greeksheet/datasource"
 	"golang.org/x/net/html"
 )
 
@@ -83,6 +84,10 @@ func parseRef(s string) (refRange, error) {
 
 	if startCh > endCh || (startCh == endCh && startV > endV) {
 		return refRange{}, fmt.Errorf("invalid reference %q: start must be before end", s)
+	}
+
+	if err := datasource.ValidateRef(book, startCh, startV, endCh, endV); err != nil {
+		return refRange{}, fmt.Errorf("invalid reference %q: %w", s, err)
 	}
 
 	return refRange{
@@ -144,6 +149,9 @@ func parseChapterRange(s string) (chapterRange, error) {
 		return chapterRange{}, fmt.Errorf("invalid chapter range %q: start chapter must not exceed end chapter", s)
 	}
 	book := m[1]
+	if err := datasource.ValidateChapterRange(book, startCh, endCh); err != nil {
+		return chapterRange{}, fmt.Errorf("invalid chapter range %q: %w", s, err)
+	}
 	return chapterRange{
 		book:         book,
 		bookSlug:     bookSlug(book),
