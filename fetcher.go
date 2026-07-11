@@ -145,9 +145,6 @@ func parseChapterRange(s string) (chapterRange, error) {
 	}
 	startCh, _ := strconv.Atoi(m[2])
 	endCh, _ := strconv.Atoi(m[3])
-	if startCh > endCh {
-		return chapterRange{}, fmt.Errorf("invalid chapter range %q: start chapter must not exceed end chapter", s)
-	}
 	book := m[1]
 	if err := datasource.ValidateChapterRange(book, startCh, endCh); err != nil {
 		return chapterRange{}, fmt.Errorf("invalid chapter range %q: %w", s, err)

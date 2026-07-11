@@ -184,9 +184,8 @@ func ValidateRef(bookName string, startCh, startV, endCh, endV int) error {
 }
 
 // ValidateChapterRange checks that a whole-chapter reference ("Book ch-ch")
-// names a recognised NT book and that both chapter numbers are within the
-// book's known chapter count. startCh must not exceed endCh; pass values
-// already validated for ordering (parseChapterRange enforces this upstream).
+// names a recognised NT book, that the chapter range is not inverted, and that
+// both chapter numbers are within the book's known chapter count.
 //
 // bookName is matched case-insensitively. Returns nil when the reference is
 // valid, or a descriptive error identifying exactly which constraint was
@@ -195,6 +194,10 @@ func ValidateChapterRange(bookName string, startCh, endCh int) error {
 	chapters, ok := lookupBook(bookName)
 	if !ok {
 		return fmt.Errorf("%q is not a recognised New Testament book", bookName)
+	}
+
+	if startCh > endCh {
+		return fmt.Errorf("%q: start chapter %d must not exceed end chapter %d", bookName, startCh, endCh)
 	}
 
 	total := len(chapters)

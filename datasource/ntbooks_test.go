@@ -68,6 +68,9 @@ func TestValidateChapterRange(t *testing.T) {
 	// --- unknown book ---
 	t.Run("unknown_book", func(t *testing.T) { f("Genesis", 1, 5, "not a recognised New Testament book") })
 
+	// --- inverted range ---
+	t.Run("inverted_range", func(t *testing.T) { f("Ephesians", 5, 2, "start chapter 5 must not exceed end chapter 2") })
+
 	// --- chapter out of range ---
 	t.Run("start_chapter_zero", func(t *testing.T) { f("Ephesians", 0, 1, "start chapter 0 is out of range") })
 	t.Run("start_chapter_too_high", func(t *testing.T) { f("Ephesians", 7, 7, "start chapter 7 is out of range") })
