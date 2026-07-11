@@ -1,7 +1,6 @@
 /*
-	Package datasource provides reference data for validating New Testament
-
-scripture references before any network requests are made.
+	Package datasource provides reference data for validating New Testament scripture references
+	before any network requests are made.
 
 The primary entry points are ValidateRef (for verse-range refs like
 "John 1:1-10") and ValidateChapterRange (for whole-chapter refs like
