@@ -61,6 +61,8 @@ func TestParseRef(t *testing.T) {
 		}, false)
 	})
 	t.Run("missing_chapter_verse", func(t *testing.T) { f("John", refRange{}, true) })
+	// Single-chapter format ("Book ch") is handled upstream by parseSingleChapter
+	// before parseRef is ever called, so "John 1" is still invalid here.
 	t.Run("malformed_ref", func(t *testing.T) { f("John 1", refRange{}, true) })
 	t.Run("empty_string", func(t *testing.T) { f("", refRange{}, true) })
 	t.Run("no_book", func(t *testing.T) { f("1:1-10", refRange{}, true) })
@@ -150,6 +152,39 @@ func TestParseChapterRange(t *testing.T) {
 	t.Run("inverted_range", func(t *testing.T) { f("John 5-1", chapterRange{}, true) })
 	// Verse-range format must be rejected — it does not match "Book ch-ch"
 	t.Run("verse_range_rejected", func(t *testing.T) { f("John 1:1-10", chapterRange{}, true) })
+	t.Run("empty_string", func(t *testing.T) { f("", chapterRange{}, true) })
+}
+
+// ---------------------------------------------------------------------------
+// parseSingleChapter tests
+// ---------------------------------------------------------------------------
+
+func TestParseSingleChapter(t *testing.T) {
+	f := func(input string, want chapterRange, wantErr bool) {
+		t.Helper()
+		got, err := parseSingleChapter(input)
+		if wantErr {
+			require.Error(t, err)
+			return
+		}
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	}
+
+	t.Run("simple", func(t *testing.T) {
+		f("Ephesians 1", chapterRange{
+			book: "Ephesians", bookSlug: "ephesians",
+			startChapter: 1, endChapter: 1,
+		}, false)
+	})
+	t.Run("multi_word_book", func(t *testing.T) {
+		f("1 Corinthians 13", chapterRange{
+			book: "1 Corinthians", bookSlug: "1-corinthians",
+			startChapter: 13, endChapter: 13,
+		}, false)
+	})
+	t.Run("invalid_book", func(t *testing.T) { f("Hezekiah 1", chapterRange{}, true) })
+	t.Run("chapter_out_of_range", func(t *testing.T) { f("John 30", chapterRange{}, true) })
 	t.Run("empty_string", func(t *testing.T) { f("", chapterRange{}, true) })
 }
 

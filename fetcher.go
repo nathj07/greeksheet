@@ -127,6 +127,10 @@ type chapterRange struct {
 // The book name may contain spaces and leading digits (e.g. "1 John 1-5").
 var chapterRangeRE = regexp.MustCompile(`^(.+?)\s+(\d+)-(\d+)$`)
 
+// singleChapterRE matches "Book ch", e.g. "Ephesians 1".
+// It is checked after chapterRangeRE so that "Book ch-ch" is never ambiguous.
+var singleChapterRE = regexp.MustCompile(`^(.+?)\s+(\d+)$`)
+
 // parseChapterRange parses a whole-chapter range like "Ephesians 1-6" or
 // "1 Corinthians 13-14". Returns an error if the format is wrong or the
 // chapter range is inverted.
@@ -150,6 +154,29 @@ func parseChapterRange(s string) (chapterRange, error) {
 		bookSlug:     bookSlug(book),
 		startChapter: startCh,
 		endChapter:   endCh,
+	}, nil
+}
+
+// parseSingleChapter parses a single-chapter ref like "Ephesians 1" or
+// "1 Corinthians 13". It is syntactic sugar for the whole-chapter path —
+// the result is a chapterRange with startChapter == endChapter so the existing
+// runChapterPerTab loop creates exactly one tab.
+func parseSingleChapter(s string) (chapterRange, error) {
+	s = strings.TrimSpace(s)
+	m := singleChapterRE.FindStringSubmatch(s)
+	if m == nil {
+		return chapterRange{}, fmt.Errorf("invalid single-chapter ref %q: expected format \"Book ch\"", s)
+	}
+	ch, _ := strconv.Atoi(m[2])
+	book := m[1]
+	if err := datasource.ValidateChapterRange(book, ch, ch); err != nil {
+		return chapterRange{}, fmt.Errorf("invalid single-chapter ref %q: %w", s, err)
+	}
+	return chapterRange{
+		book:         book,
+		bookSlug:     bookSlug(book),
+		startChapter: ch,
+		endChapter:   ch,
 	}, nil
 }
 

@@ -23,6 +23,10 @@ There are two input modes — exactly one must be provided:
 		each named by chapter number ("1", "2", …). Use -sheet-id to add tabs
 		to an existing spreadsheet, or omit it to create a new one.
 
+	  -ref "<Book ch>"
+		Fetch a single whole chapter. Shorthand for the whole-chapter format
+		above when only one chapter is needed — no need to write "ch-ch".
+
 All ref formats are limited to a single book. Cross-book ranges such as
 "Ephesians 6:1-Philippians 2:6" are not supported.
 
@@ -41,6 +45,7 @@ Usage:
 	go run . -ref "John 1:1-14" -title "John 1"
 	go run . -ref "John 1:1-14" -title "John 1" -folder-id <ID FROM DRIVE FOLDER URL>
 	go run . -ref "John 1:50-2:10" -title "John cross-chapter"
+	go run . -ref "Ephesians 1" -title "Ephesians 1"
 	go run . -ref "Ephesians 1-6" -sheet-id <ID>
 	go run . -ref "Ephesians 1-6" -title "Ephesians"
 	go run . -ref "Ephesians 1-6" -title "Ephesians" -folder-id <ID FROM DRIVE FOLDER URL>
@@ -100,6 +105,7 @@ Ref formats:
   "Book ch:v-v"       verse range within one chapter   e.g. "John 1:1-14"
   "Book ch:v-ch:v"    cross-chapter verse range         e.g. "John 1:50-2:10"
   "Book ch-ch"        whole chapters, one tab each      e.g. "Ephesians 1-6"
+  "Book ch"           single whole chapter              e.g. "Ephesians 1"
 
 Options:
 `, args[0])
@@ -109,9 +115,10 @@ Examples:
   %s -input practice.txt
   %s -ref "John 1:1-14" -title "John 1"
   %s -ref "John 1:50-2:10" -title "John cross-chapter"
+  %s -ref "Ephesians 1" -title "Ephesians 1"
   %s -ref "Ephesians 1-6" -title "Ephesians"
   %s -ref "Ephesians 1-6" -sheet-id <ID>
-`, args[0], args[0], args[0], args[0], args[0])
+`, args[0], args[0], args[0], args[0], args[0], args[0])
 	}
 
 	if err := flags.Parse(args[1:]); err != nil {
@@ -174,8 +181,9 @@ func (a *app) run(ctx context.Context) error {
 
 	if a.conf.Ref != "" {
 		// Whole-chapter format ("Book ch-ch") is detected automatically and
-		// creates one tab per chapter. Verse-range format ("Book ch:v-v") is
-		// the fallback for a single-tab fetch.
+		// creates one tab per chapter. Single-chapter format ("Book ch") is
+		// detected next and creates exactly one tab. Verse-range format
+		// ("Book ch:v-v") is the fallback for a single-tab fetch.
 		//
 		// We check whether the input structurally looks like a chapter range
 		// (matches the pattern) before deciding which path to take. This way,
@@ -184,6 +192,13 @@ func (a *app) run(ctx context.Context) error {
 		// verse-range parsing and returning a confusing "invalid reference" error.
 		if chapterRangeRE.MatchString(strings.TrimSpace(a.conf.Ref)) {
 			cr, err := parseChapterRange(a.conf.Ref)
+			if err != nil {
+				return err
+			}
+			return a.runChapterPerTab(ctx, httpClient, cr)
+		}
+		if singleChapterRE.MatchString(strings.TrimSpace(a.conf.Ref)) {
+			cr, err := parseSingleChapter(a.conf.Ref)
 			if err != nil {
 				return err
 			}
