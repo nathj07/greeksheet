@@ -81,17 +81,46 @@ func main() {
 func start(args []string) error {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	inputFile := flags.String("input", "", "Path to the input text file of Greek verses")
-	refFlag := flags.String("ref", "", "Reference range to fetch from greekbible.com, e.g. \"John 1:1-10\", \"John 1:50-2:10\", or \"Ephesians 1-6\" (whole-chapter, one tab per chapter)")
+	refFlag := flags.String("ref", "", "Reference to fetch from greekbible.com (see ref formats below)")
 	title := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename or ref)")
 	sheetID := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
 	folderID := flags.String("folder-id", "", "Google Drive folder ID to create the new spreadsheet in (optional; find it in the folder's URL)")
 	verbose := flags.Bool("verbose", false, "Log Sheets API retry attempts to stderr")
+
+	flags.Usage = func() {
+		fmt.Fprintf(os.Stderr, `Greek NT translation-practice spreadsheet generator.
+
+Fetches Greek text from greekbible.com and writes it to a Google Sheet
+formatted for translation practice. Exactly one of -input or -ref is required.
+
+Usage:
+  %s (-input <file> | -ref <ref>) [options]
+
+Ref formats:
+  "Book ch:v-v"       verse range within one chapter   e.g. "John 1:1-14"
+  "Book ch:v-ch:v"    cross-chapter verse range         e.g. "John 1:50-2:10"
+  "Book ch-ch"        whole chapters, one tab each      e.g. "Ephesians 1-6"
+
+Options:
+`, args[0])
+		flags.PrintDefaults()
+		fmt.Fprintf(os.Stderr, `
+Examples:
+  %s -input practice.txt
+  %s -ref "John 1:1-14" -title "John 1"
+  %s -ref "John 1:50-2:10" -title "John cross-chapter"
+  %s -ref "Ephesians 1-6" -title "Ephesians"
+  %s -ref "Ephesians 1-6" -sheet-id <ID>
+`, args[0], args[0], args[0], args[0], args[0])
+	}
+
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
 
 	if *inputFile == "" && *refFlag == "" {
-		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-verbose]", args[0])
+		flags.Usage()
+		return nil
 	}
 	if *inputFile != "" && *refFlag != "" {
 		return fmt.Errorf("-input and -ref are mutually exclusive: provide one or the other, not both")
@@ -147,10 +176,20 @@ func (a *app) run(ctx context.Context) error {
 		// Whole-chapter format ("Book ch-ch") is detected automatically and
 		// creates one tab per chapter. Verse-range format ("Book ch:v-v") is
 		// the fallback for a single-tab fetch.
-		if cr, err := parseChapterRange(a.conf.Ref); err == nil {
+		//
+		// We check whether the input structurally looks like a chapter range
+		// (matches the pattern) before deciding which path to take. This way,
+		// an inverted range such as "Ephesians 6-1" surfaces the specific
+		// chapter-range error rather than silently falling through to
+		// verse-range parsing and returning a confusing "invalid reference" error.
+		if chapterRangeRE.MatchString(strings.TrimSpace(a.conf.Ref)) {
+			cr, err := parseChapterRange(a.conf.Ref)
+			if err != nil {
+				return err
+			}
 			return a.runChapterPerTab(ctx, httpClient, cr)
 		}
-
+		// we will check the ref in fetchSections
 		fmt.Printf("Fetching Greek text for %q from greekbible.com…\n", a.conf.Ref)
 		sections, tabName, err = fetchSections(ctx, a.conf.Ref)
 		if err != nil {

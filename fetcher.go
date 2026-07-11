@@ -69,7 +69,7 @@ func parseRef(s string) (refRange, error) {
 	s = strings.TrimSpace(s)
 	m := refRangeRE.FindStringSubmatch(s)
 	if m == nil {
-		return refRange{}, fmt.Errorf("invalid reference %q: expected \"Book ch:v-v\", \"Book ch:v-ch:v\", or \"Book ch-ch\" (whole-chapter fetch)", s)
+		return refRange{}, fmt.Errorf("invalid reference %q: expected \"Book ch:v-v\", \"Book ch:v-ch:v\", or \"Book ch-ch\" (whole-chapter)", s)
 	}
 	// m[1]=book  m[2]=startCh  m[3]=startV  m[4]=endCh(optional)  m[5]=endV
 	book := m[1]
