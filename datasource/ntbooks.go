@@ -149,8 +149,8 @@ func lookupBook(bookName string) ([]chapterInfo, bool) {
 }
 
 // ValidateRef checks that a verse-range reference ("Book ch:v-ch:v") names a
-// recognised NT book and that all four boundary values fall within the known
-// chapter and verse counts.
+// recognised NT book, that the reference is not inverted, and that all four
+// boundary values fall within the known chapter and verse counts.
 //
 // bookName is matched case-insensitively. Returns nil when the reference is
 // valid, or a descriptive error identifying exactly which constraint was
@@ -159,6 +159,10 @@ func ValidateRef(bookName string, startCh, startV, endCh, endV int) error {
 	chapters, ok := lookupBook(bookName)
 	if !ok {
 		return fmt.Errorf("%q is not a recognised New Testament book", bookName)
+	}
+
+	if startCh > endCh || (startCh == endCh && startV > endV) {
+		return fmt.Errorf("%q: start %d:%d must not exceed end %d:%d", bookName, startCh, startV, endCh, endV)
 	}
 
 	total := len(chapters)

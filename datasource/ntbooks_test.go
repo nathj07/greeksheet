@@ -34,6 +34,10 @@ func TestValidateRef(t *testing.T) {
 	t.Run("unknown_book", func(t *testing.T) { f("Genesis", 1, 1, 1, 10, "not a recognised New Testament book") })
 	t.Run("misspelled_book", func(t *testing.T) { f("Johnathan", 1, 1, 1, 10, "not a recognised New Testament book") })
 
+	// --- inverted range ---
+	t.Run("inverted_chapters", func(t *testing.T) { f("John", 3, 1, 2, 10, "start 3:1 must not exceed end 2:10") })
+	t.Run("inverted_verses_same_chapter", func(t *testing.T) { f("John", 1, 10, 1, 5, "start 1:10 must not exceed end 1:5") })
+
 	// --- chapter out of range ---
 	t.Run("start_chapter_too_high", func(t *testing.T) { f("Ephesians", 7, 1, 7, 1, "start chapter 7 is out of range") })
 	t.Run("start_chapter_zero", func(t *testing.T) { f("Ephesians", 0, 1, 1, 1, "start chapter 0 is out of range") })
@@ -42,7 +46,7 @@ func TestValidateRef(t *testing.T) {
 	// --- verse out of range ---
 	t.Run("start_verse_too_high", func(t *testing.T) { f("John", 1, 52, 1, 52, "start verse 52 is out of range") })
 	t.Run("start_verse_zero", func(t *testing.T) { f("John", 1, 0, 1, 10, "start verse 0 is out of range") })
-	t.Run("end_verse_zero", func(t *testing.T) { f("John", 1, 1, 1, 0, "end verse 0 is out of range") })
+	t.Run("end_verse_zero", func(t *testing.T) { f("John", 1, 1, 1, 0, "start 1:1 must not exceed end 1:0") })
 	t.Run("end_verse_too_high", func(t *testing.T) { f("John", 1, 1, 1, 52, "end verse 52 is out of range") })
 	t.Run("philemon_verse_too_high", func(t *testing.T) { f("Philemon", 1, 1, 1, 26, "end verse 26 is out of range") })
 }

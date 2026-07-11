@@ -82,10 +82,6 @@ func parseRef(s string) (refRange, error) {
 	}
 	endV, _ := strconv.Atoi(m[5])
 
-	if startCh > endCh || (startCh == endCh && startV > endV) {
-		return refRange{}, fmt.Errorf("invalid reference %q: start must be before end", s)
-	}
-
 	if err := datasource.ValidateRef(book, startCh, startV, endCh, endV); err != nil {
 		return refRange{}, fmt.Errorf("invalid reference %q: %w", s, err)
 	}
