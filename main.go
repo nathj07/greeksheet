@@ -17,11 +17,14 @@ There are two input modes — exactly one must be provided:
 		ranges ("John 1:50-2:10"). One HTTP request is made per chapter; verses
 		are filtered in-process to the requested range.
 
-	  -ref "<Book ch-ch>" -chapter-per-tab
-		Fetch entire chapters from greekbible.com, creating one Google Sheets tab
-		per chapter. Each tab is named by chapter number ("1", "2", …). Use
-		-sheet-id to add tabs to an existing spreadsheet, or omit it to create a
-		new one.
+	  -ref "<Book ch-ch>"
+		Fetch entire chapters from greekbible.com. The whole-chapter format is
+		detected automatically — one Google Sheets tab per chapter is created,
+		each named by chapter number ("1", "2", …). Use -sheet-id to add tabs
+		to an existing spreadsheet, or omit it to create a new one.
+
+All ref formats are limited to a single book. Cross-book ranges such as
+"Ephesians 6:1-Philippians 2:6" are not supported.
 
 Example input file (e.g. practice.txt):
 
@@ -38,9 +41,9 @@ Usage:
 	go run . -ref "John 1:1-14" -title "John 1"
 	go run . -ref "John 1:1-14" -title "John 1" -folder-id <ID FROM DRIVE FOLDER URL>
 	go run . -ref "John 1:50-2:10" -title "John cross-chapter"
-	go run . -ref "Ephesians 1-6" -chapter-per-tab -sheet-id <ID>
-	go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians"
-	go run . -ref "Ephesians 1-6" -chapter-per-tab -title "Ephesians" -folder-id <ID FROM DRIVE FOLDER URL>
+	go run . -ref "Ephesians 1-6" -sheet-id <ID>
+	go run . -ref "Ephesians 1-6" -title "Ephesians"
+	go run . -ref "Ephesians 1-6" -title "Ephesians" -folder-id <ID FROM DRIVE FOLDER URL>
 */
 package main
 
@@ -56,13 +59,12 @@ import (
 )
 
 type config struct {
-	InputFile     string
-	Ref           string // non-empty = fetch mode; mutually exclusive with InputFile
-	Title         string
-	SheetID       string // non-empty = add a tab to this existing spreadsheet
-	FolderID      string // non-empty = create the new spreadsheet inside this Drive folder
-	ChapterPerTab bool   // create one tab per chapter (requires whole-chapter ref format)
-	Verbose       bool   // log Sheets API retry attempts to stderr
+	InputFile string
+	Ref       string // non-empty = fetch mode; mutually exclusive with InputFile
+	Title     string
+	SheetID   string // non-empty = add a tab to this existing spreadsheet
+	FolderID  string // non-empty = create the new spreadsheet inside this Drive folder
+	Verbose   bool   // log Sheets API retry attempts to stderr
 }
 
 type app struct {
@@ -79,40 +81,32 @@ func main() {
 func start(args []string) error {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	inputFile := flags.String("input", "", "Path to the input text file of Greek verses")
-	refFlag := flags.String("ref", "", "Reference range to fetch from greekbible.com, e.g. \"John 1:1-10\", \"John 1:50-2:10\", or (with -chapter-per-tab) \"Ephesians 1-6\"")
+	refFlag := flags.String("ref", "", "Reference range to fetch from greekbible.com, e.g. \"John 1:1-10\", \"John 1:50-2:10\", or \"Ephesians 1-6\" (whole-chapter, one tab per chapter)")
 	title := flags.String("title", "", "Title for the Google Sheet (defaults to the input filename or ref)")
 	sheetID := flags.String("sheet-id", "", "ID of an existing Google Spreadsheet to add a tab to (optional; omit to create a new sheet)")
 	folderID := flags.String("folder-id", "", "Google Drive folder ID to create the new spreadsheet in (optional; find it in the folder's URL)")
-	chapterPerTab := flags.Bool("chapter-per-tab", false, "Create one tab per chapter; use with a whole-chapter ref like \"Ephesians 1-6\"")
 	verbose := flags.Bool("verbose", false, "Log Sheets API retry attempts to stderr")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
 
 	if *inputFile == "" && *refFlag == "" {
-		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-chapter-per-tab] [-verbose]", args[0])
+		return fmt.Errorf("usage: %s (-input <file> | -ref <range>) [-title <name>] [-sheet-id <id>] [-folder-id <id>] [-verbose]", args[0])
 	}
 	if *inputFile != "" && *refFlag != "" {
 		return fmt.Errorf("-input and -ref are mutually exclusive: provide one or the other, not both")
-	}
-	if *chapterPerTab && *inputFile != "" {
-		return fmt.Errorf("-chapter-per-tab cannot be used with -input; provide -ref with a whole-chapter range like \"Ephesians 1-6\"")
-	}
-	if *chapterPerTab && *refFlag == "" {
-		return fmt.Errorf("-chapter-per-tab requires -ref with a whole-chapter range like \"Ephesians 1-6\"")
 	}
 	if *sheetID != "" && *folderID != "" {
 		return fmt.Errorf("-sheet-id and -folder-id are mutually exclusive: -folder-id only applies when creating a new spreadsheet, but -sheet-id targets an existing one")
 	}
 
 	conf := config{
-		InputFile:     *inputFile,
-		Ref:           *refFlag,
-		Title:         *title,
-		SheetID:       *sheetID,
-		FolderID:      *folderID,
-		ChapterPerTab: *chapterPerTab,
-		Verbose:       *verbose,
+		InputFile: *inputFile,
+		Ref:       *refFlag,
+		Title:     *title,
+		SheetID:   *sheetID,
+		FolderID:  *folderID,
+		Verbose:   *verbose,
 	}
 	if conf.SheetID != "" && *title != "" {
 		fmt.Fprintln(os.Stderr, "Warning: -title is ignored when -sheet-id is provided")
@@ -149,11 +143,14 @@ func (a *app) run(ctx context.Context) error {
 		return fmt.Errorf("authentication failed: %w", err)
 	}
 
-	if a.conf.ChapterPerTab {
-		return a.runChapterPerTab(ctx, httpClient)
-	}
-
 	if a.conf.Ref != "" {
+		// Whole-chapter format ("Book ch-ch") is detected automatically and
+		// creates one tab per chapter. Verse-range format ("Book ch:v-v") is
+		// the fallback for a single-tab fetch.
+		if cr, err := parseChapterRange(a.conf.Ref); err == nil {
+			return a.runChapterPerTab(ctx, httpClient, cr)
+		}
+
 		fmt.Printf("Fetching Greek text for %q from greekbible.com…\n", a.conf.Ref)
 		sections, tabName, err = fetchSections(ctx, a.conf.Ref)
 		if err != nil {
@@ -195,17 +192,12 @@ func (a *app) run(ctx context.Context) error {
 }
 
 // runChapterPerTab fetches a whole-chapter range and creates one Google Sheets
-// tab per chapter. The ref must be in "Book ch-ch" format (e.g. "Ephesians 1-6").
+// tab per chapter. Each tab is named by chapter number ("1", "2", …).
 //
 // If -sheet-id is provided the tabs are added to that existing spreadsheet.
 // Otherwise the first chapter's fetch creates a new spreadsheet and subsequent
 // chapters add tabs to it.
-func (a *app) runChapterPerTab(ctx context.Context, httpClient *http.Client) error {
-	cr, err := parseChapterRange(a.conf.Ref)
-	if err != nil {
-		return fmt.Errorf("parsing chapter range: %w", err)
-	}
-
+func (a *app) runChapterPerTab(ctx context.Context, httpClient *http.Client, cr chapterRange) error {
 	fmt.Printf("Fetching %s chapters %d–%d from greekbible.com…\n", cr.book, cr.startChapter, cr.endChapter)
 
 	// client fetches chapter HTML from greekbible.com. httpClient is the
