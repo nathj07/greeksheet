@@ -6,12 +6,14 @@ translation practice. It supports two input modes:
 - **File mode** (`-input`): read verses from a plain-text file copied from
   [greekbible.com](https://greekbible.com).
 - **Fetch mode** (`-ref`): fetch Greek text directly from greekbible.com — no
-  copy-pasting required. One HTTP request is made per chapter. Two ref formats
+  copy-pasting required. One HTTP request is made per chapter. Three ref formats
   are supported:
   - `"Book ch:v-v"` or `"Book ch:v-ch:v"` — fetches a verse range into a
     single tab.
   - `"Book ch-ch"` — fetches whole chapters and creates one tab per chapter
     automatically, useful for whole-book or multi-chapter study.
+  - `"Book ch"` — fetches a single whole chapter; shorthand for the above when
+    only one chapter is needed.
 
 ## Download
 
@@ -140,22 +142,28 @@ each chapter page is fetched.
 > same book. A reference like `"Ephesians 6:1-Philippians 2:6"` will be
 > rejected — split it into two separate runs instead.
 
-### Whole-chapter fetch (`-ref "Book ch-ch"`)
+### Whole-chapter fetch (`-ref "Book ch-ch"` or `-ref "Book ch"`)
 
 When the reference is in `"<Book> <startChapter>-<endChapter>"` format,
 greeksheet automatically fetches entire chapters and creates one Google Sheets
 tab per chapter, named by chapter number (`"1"`, `"2"`, …). No extra flag is
-needed — the format is detected automatically:
+needed — the format is detected automatically.
+
+For a single chapter, you can use the shorter `"<Book> <chapter>"` form instead
+of writing `"ch-ch"`:
 
 ```bash
+# Single chapter — short form
+go run . -ref "Ephesians 1" -title "Ephesians 1"
+
+# Single chapter — equivalent long form (still works)
+go run . -ref "Romans 8-8" -title "Romans 8"
+
 # Create a new spreadsheet with one tab per chapter
 go run . -ref "Philippians 1-4" -title "Philippians"
 
 # Add tabs to an existing spreadsheet
 go run . -ref "Ephesians 1-6" -sheet-id <ID>
-
-# Single chapter
-go run . -ref "Romans 8-8" -title "Romans 8"
 ```
 
 > **Cross-book ranges are not supported.** All chapters must belong to the
@@ -193,7 +201,7 @@ Exactly one of `-input` or `-ref` must be supplied.
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-input` | | Path to the input text file of Greek verses (**mutually exclusive with `-ref`**) |
-| `-ref` | | Reference range to fetch from greekbible.com. Use `"Book ch:v-v"` or `"Book ch:v-ch:v"` for a verse range (single tab); use `"Book ch-ch"` for whole chapters (one tab per chapter, detected automatically) (**mutually exclusive with `-input`**) |
+| `-ref` | | Reference range to fetch from greekbible.com. Use `"Book ch:v-v"` or `"Book ch:v-ch:v"` for a verse range (single tab); use `"Book ch-ch"` for whole chapters (one tab per chapter, detected automatically); use `"Book ch"` for a single whole chapter (**mutually exclusive with `-input`**) |
 | `-title` | input filename (without extension), or the ref string | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
 | `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to (**mutually exclusive with `-folder-id`**) |
 | `-folder-id` | *(omit to create in Drive root)* | Google Drive folder ID to create the **new** spreadsheet inside (**mutually exclusive with `-sheet-id`**) |
@@ -252,6 +260,9 @@ go run . -ref "John 3:36-4:5" -title "John cross-chapter"
 # Fetch mode — add a tab to an existing spreadsheet
 go run . -ref "Romans 8:1-17" -title "Romans 8" -sheet-id <ID>
 
+# Single chapter fetch
+go run . -ref "Ephesians 1" -title "Ephesians 1"
+
 # Whole-chapter fetch — create a new spreadsheet with one tab per chapter
 go run . -ref "Philippians 1-4" -title "Philippians"
 
@@ -298,7 +309,7 @@ Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
 ```
 
-### Whole-chapter fetch (`-ref "Book ch-ch"`)
+### Whole-chapter fetch (`-ref "Book ch-ch"` or `-ref "Book ch"`)
 
 ```
 Authenticating with Google…
