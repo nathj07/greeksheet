@@ -3,7 +3,7 @@ package datasource_test
 import (
 	"testing"
 
-	"github.com/nathj07/greeksheet/datasource"
+	"github.com/nathj07/greeksheet/internal/datasource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

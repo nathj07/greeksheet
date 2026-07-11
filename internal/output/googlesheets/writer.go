@@ -1,9 +1,8 @@
-package main
+package googlesheets
 
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -20,7 +19,7 @@ import (
 // The two BatchUpdate calls are separated by a proactive delay (sheetsCallDelay)
 // to keep the write rate under the Sheets API quota. Each call is also wrapped
 // with withRetry so that transient 429s are retried with exponential back-off.
-func (a *app) populateTab(ctx context.Context, sheetsSvc *sheets.Service, spreadsheetID, tabName string, renameTab bool, sheetID int64, d sheetData) error {
+func (t *Target) populateTab(ctx context.Context, sheetsSvc *sheets.Service, spreadsheetID, tabName string, renameTab bool, sheetID int64, d sheetData) error {
 	maxCols := 1
 	for _, row := range d.rows {
 		if len(row) > maxCols {
@@ -74,7 +73,7 @@ func (a *app) populateTab(ctx context.Context, sheetsSvc *sheets.Service, spread
 		}},
 	)
 	updateReq := &sheets.BatchUpdateSpreadsheetRequest{Requests: dataReqs}
-	if err := withRetry(ctx, a.conf.Verbose, func() error {
+	if err := withRetry(ctx, t.opts.Verbose, func() error {
 		_, err := sheetsSvc.Spreadsheets.BatchUpdate(spreadsheetID, updateReq).Context(ctx).Do()
 		return err
 	}); err != nil {
@@ -104,7 +103,7 @@ func (a *app) populateTab(ctx context.Context, sheetsSvc *sheets.Service, spread
 	allReqs = append(allReqs, textNumberFormatReq(sheetID))
 
 	fmtReq := &sheets.BatchUpdateSpreadsheetRequest{Requests: allReqs}
-	if err := withRetry(ctx, a.conf.Verbose, func() error {
+	if err := withRetry(ctx, t.opts.Verbose, func() error {
 		_, err := sheetsSvc.Spreadsheets.BatchUpdate(spreadsheetID, fmtReq).Context(ctx).Do()
 		return err
 	}); err != nil {
@@ -114,34 +113,34 @@ func (a *app) populateTab(ctx context.Context, sheetsSvc *sheets.Service, spread
 	return nil
 }
 
-// createSpreadsheet creates a new Google Sheet with a single content tab named
-// tabName, populates it with d, and makes it accessible via link. The spreadsheet
-// title and destination folder are read from a.conf.
+// createSpreadsheet creates a new Google Sheet titled title with a single
+// content tab named tabName, populates it with d, and makes it accessible via
+// link.
 //
-// If a.conf.FolderID is non-empty, the spreadsheet is created directly inside
-// that Drive folder using the Drive Files.Create API (which accepts a parents
-// field). When FolderID is empty the sheet lands in the authenticated user's
-// Drive root.
-func (a *app) createSpreadsheet(ctx context.Context, client *http.Client, tabName string, d sheetData) (string, error) {
-	sheetsSvc, err := sheets.NewService(ctx, option.WithHTTPClient(client))
+// If the target's FolderID is non-empty, the spreadsheet is created directly
+// inside that Drive folder using the Drive Files.Create API (which accepts a
+// parents field). When FolderID is empty the sheet lands in the authenticated
+// user's Drive root.
+func (t *Target) createSpreadsheet(ctx context.Context, title, tabName string, d sheetData) (string, error) {
+	sheetsSvc, err := sheets.NewService(ctx, option.WithHTTPClient(t.client))
 	if err != nil {
 		return "", fmt.Errorf("creating Sheets service: %w", err)
 	}
-	driveSvc, err := drive.NewService(ctx, option.WithHTTPClient(client))
+	driveSvc, err := drive.NewService(ctx, option.WithHTTPClient(t.client))
 	if err != nil {
 		return "", fmt.Errorf("creating Drive service: %w", err)
 	}
 
 	var spreadsheetID string
 	var initialSheetID int64
-	if a.conf.FolderID != "" {
+	if t.opts.FolderID != "" {
 		// Create directly in the target folder via the Drive API. This avoids the
 		// sheet ever appearing in the Drive root, which would happen if we created
 		// it via the Sheets API and then moved it.
 		f := &drive.File{
-			Name:     a.conf.Title,
+			Name:     title,
 			MimeType: "application/vnd.google-apps.spreadsheet",
-			Parents:  []string{a.conf.FolderID},
+			Parents:  []string{t.opts.FolderID},
 		}
 		created, err := driveSvc.Files.Create(f).Context(ctx).Do()
 		if err != nil {
@@ -166,7 +165,7 @@ func (a *app) createSpreadsheet(ctx context.Context, client *http.Client, tabNam
 		// Create the spreadsheet with the content tab already named correctly —
 		// this avoids needing to rename or delete a default "Sheet1" afterwards.
 		ss, err := sheetsSvc.Spreadsheets.Create(&sheets.Spreadsheet{
-			Properties: &sheets.SpreadsheetProperties{Title: a.conf.Title},
+			Properties: &sheets.SpreadsheetProperties{Title: title},
 			Sheets: []*sheets.Sheet{{
 				Properties: &sheets.SheetProperties{Title: tabName},
 			}},
@@ -185,7 +184,7 @@ func (a *app) createSpreadsheet(ctx context.Context, client *http.Client, tabNam
 	// No sheetsCallDelay before populateTab here: createSpreadsheet is called at
 	// most once per run, so there is no burst of preceding BatchUpdate calls to
 	// space out. The per-chapter addTabToSpreadsheet path does insert a delay.
-	if err := a.populateTab(ctx, sheetsSvc, spreadsheetID, tabName, a.conf.FolderID != "", initialSheetID, d); err != nil {
+	if err := t.populateTab(ctx, sheetsSvc, spreadsheetID, tabName, t.opts.FolderID != "", initialSheetID, d); err != nil {
 		return "", err
 	}
 
@@ -203,14 +202,14 @@ func (a *app) createSpreadsheet(ctx context.Context, client *http.Client, tabNam
 
 // addTabToSpreadsheet adds a new tab named tabName to an existing spreadsheet
 // and populates it with d.
-func (a *app) addTabToSpreadsheet(ctx context.Context, client *http.Client, spreadsheetID, tabName string, d sheetData) (string, error) {
-	sheetsSvc, err := sheets.NewService(ctx, option.WithHTTPClient(client))
+func (t *Target) addTabToSpreadsheet(ctx context.Context, spreadsheetID, tabName string, d sheetData) (string, error) {
+	sheetsSvc, err := sheets.NewService(ctx, option.WithHTTPClient(t.client))
 	if err != nil {
 		return "", fmt.Errorf("creating Sheets service: %w", err)
 	}
 
 	var resp *sheets.BatchUpdateSpreadsheetResponse
-	if err := withRetry(ctx, a.conf.Verbose, func() error {
+	if err := withRetry(ctx, t.opts.Verbose, func() error {
 		var e error
 		resp, e = sheetsSvc.Spreadsheets.BatchUpdate(spreadsheetID, &sheets.BatchUpdateSpreadsheetRequest{
 			Requests: []*sheets.Request{{
@@ -236,7 +235,7 @@ func (a *app) addTabToSpreadsheet(ctx context.Context, client *http.Client, spre
 		return "", ctx.Err()
 	}
 
-	if err := a.populateTab(ctx, sheetsSvc, spreadsheetID, tabName, false, newSheetID, d); err != nil {
+	if err := t.populateTab(ctx, sheetsSvc, spreadsheetID, tabName, false, newSheetID, d); err != nil {
 		return "", err
 	}
 
