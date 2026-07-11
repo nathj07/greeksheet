@@ -847,6 +847,12 @@
             loading="lazy"
           ></iframe>
         </div>
+        <p style="margin-top:1rem;font-size:.9rem;color:var(--text-muted);max-width:640px;margin-inline:auto;text-align:center;">
+          <strong style="color:var(--text);">Note:</strong> the demo shows a
+          <code>-chapter-per-tab</code> flag. This flag has since been removed —
+          whole-chapter refs like <code>"Ephesians 1-6"</code> are now detected
+          automatically and always create one tab per chapter.
+        </p>
       </div>
     </section>
 
@@ -889,6 +895,20 @@
                  Drive scope solely to let you place new sheets inside a specific
                  folder with <code>-folder-id</code>. It never reads, lists, or modifies
                  any of your existing files.</p>
+            </div>
+          </details>
+
+          <details>
+            <summary>Can I fetch a range that spans two different books?</summary>
+            <div class="faq-body">
+              <p>No. All reference formats require both endpoints to belong to the same
+                 book. A ref like <code>Ephesians 6:1-Philippians 2:6</code> or
+                 <code>Ephesians 6-Philippians 2</code> will be rejected with an error.
+                 Run each book as a separate command instead — the
+                 <code>-sheet-id</code> flag lets you add the second book's tabs into
+                 the same spreadsheet:</p>
+              <pre style="margin-top:.5rem;background:#1e293b;color:#e2e8f0;border-radius:6px;padding:.6rem .9rem;font-family:var(--mono);font-size:.78rem;overflow-x:auto;">greeksheet -ref "Ephesians 1-6" -title "Study"
+greeksheet -ref "Philippians 1-4" -sheet-id &lt;ID from above&gt;</pre>
             </div>
           </details>
 

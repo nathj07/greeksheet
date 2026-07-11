@@ -66,6 +66,14 @@ func TestParseRef(t *testing.T) {
 	t.Run("no_book", func(t *testing.T) { f("1:1-10", refRange{}, true) })
 	t.Run("inverted_range_same_chapter", func(t *testing.T) { f("John 1:10-1", refRange{}, true) })
 	t.Run("inverted_range_cross_chapter", func(t *testing.T) { f("John 2:1-1:10", refRange{}, true) })
+	// Whole-chapter format ("Book ch-ch") is handled upstream by parseChapterRange
+	// before parseRef is ever called, so it will never parse successfully here.
+	// The error message still mentions "Book ch-ch" as a hint about the tool's
+	// supported formats, even though this function cannot accept it.
+	t.Run("whole_chapter_format_rejected", func(t *testing.T) {
+		_, err := parseRef("Ephesians 1-6")
+		require.Error(t, err)
+	})
 }
 
 // ---------------------------------------------------------------------------

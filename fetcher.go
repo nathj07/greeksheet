@@ -60,13 +60,16 @@ var refRangeRE = regexp.MustCompile(
 // Accepted formats:
 //
 //	"John 1:1-10"           same-chapter, verses 1–10
-//	"John 1:50-2:10"        cross-chapter
+//	"John 1:50-2:10"        cross-chapter within the same book
 //	"1 Corinthians 13:1-13" multi-word book name
+//
+// Cross-book ranges (e.g. "Ephesians 6:1-Philippians 2:6") are not supported.
+// Both chapter and verse endpoints must belong to the same book.
 func parseRef(s string) (refRange, error) {
 	s = strings.TrimSpace(s)
 	m := refRangeRE.FindStringSubmatch(s)
 	if m == nil {
-		return refRange{}, fmt.Errorf("invalid reference %q: expected format \"Book ch:v-v\" or \"Book ch:v-ch:v\"", s)
+		return refRange{}, fmt.Errorf("invalid reference %q: expected \"Book ch:v-v\", \"Book ch:v-ch:v\", or \"Book ch-ch\" (whole-chapter)", s)
 	}
 	// m[1]=book  m[2]=startCh  m[3]=startV  m[4]=endCh(optional)  m[5]=endV
 	book := m[1]
@@ -106,11 +109,11 @@ func tabNameFromRef(r refRange) string {
 }
 
 // ---------------------------------------------------------------------------
-// Whole-chapter range (used by --chapter-per-tab)
+// Whole-chapter range (auto-detected from "Book ch-ch" ref format)
 // ---------------------------------------------------------------------------
 
 // chapterRange holds a parsed whole-chapter range, e.g. "Ephesians 1-6".
-// It is the input type for --chapter-per-tab mode, where no verse boundaries
+// It is used when the ref is in whole-chapter format; no verse boundaries
 // are specified and every chapter is fetched in full.
 type chapterRange struct {
 	book         string // display name, e.g. "Ephesians"
@@ -126,6 +129,9 @@ var chapterRangeRE = regexp.MustCompile(`^(.+?)\s+(\d+)-(\d+)$`)
 // parseChapterRange parses a whole-chapter range like "Ephesians 1-6" or
 // "1 Corinthians 13-14". Returns an error if the format is wrong or the
 // chapter range is inverted.
+//
+// Cross-book ranges (e.g. "Ephesians 6-Philippians 2") are not supported.
+// All chapters must belong to the same book.
 func parseChapterRange(s string) (chapterRange, error) {
 	s = strings.TrimSpace(s)
 	m := chapterRangeRE.FindStringSubmatch(s)
@@ -149,7 +155,7 @@ func parseChapterRange(s string) (chapterRange, error) {
 // fetchChapterSections fetches all verses of a single chapter and returns them
 // as sections with a heading. tabName is the chapter number as a string (e.g. "3").
 //
-// This is the building block for --chapter-per-tab: the caller loops over
+// This is the building block for whole-chapter fetch: the caller loops over
 // chapters and creates one sheet tab per call.
 func fetchChapterSections(ctx context.Context, client *http.Client, cr chapterRange, ch int) ([]section, string, error) {
 	fmt.Printf("  Fetching %s chapter %d…\n", cr.book, ch)
