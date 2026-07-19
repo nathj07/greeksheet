@@ -53,7 +53,7 @@ func (t *Target) Render(_ context.Context, d document.Document) (string, error) 
 	if err != nil {
 		return "", err
 	}
-
+	defer func() { _ = f.Close() }()
 	sc := &styleCache{}
 	if err := sc.build(f); err != nil {
 		return "", fmt.Errorf("build styles: %w", err)
