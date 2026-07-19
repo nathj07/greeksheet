@@ -13,11 +13,13 @@ import (
 // ---------------------------------------------------------------------------
 
 // Standard row colours for the translation-practice layout.
+// excelize's Fill.Color expects a 6-character RGB hex string — it prepends the
+// FF alpha channel internally when writing the OOXML file.
 const (
-	colGrey   = "FFD9D9D9" // verse row
-	colBlue   = "FFCFE2F3" // O row — original Greek text
-	colOrange = "FFFCE5CD" // I row — interlinear practice
-	colGreen  = "FFB7E1CD" // T row — translation practice
+	colGrey   = "D9D9D9" // verse row
+	colBlue   = "CFE2F3" // O row — original Greek text
+	colOrange = "FCE5CD" // I row — interlinear practice
+	colGreen  = "B7E1CD" // T row — translation practice
 )
 
 // ---------------------------------------------------------------------------

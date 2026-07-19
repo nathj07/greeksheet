@@ -63,6 +63,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/nathj07/greeksheet/internal/app"
 	"github.com/nathj07/greeksheet/internal/auth"
@@ -161,6 +163,12 @@ Examples:
 		if *xlsxFile == "" {
 			return fmt.Errorf("-output xlsx requires -xlsx-file")
 		}
+		if err := validateXlsxPath(*xlsxFile); err != nil {
+			return err
+		}
+		if *title != "" {
+			fmt.Fprintln(os.Stderr, "Warning: -title is ignored for xlsx output — the file name is taken from -xlsx-file")
+		}
 		if *sheetID != "" || *folderID != "" {
 			return fmt.Errorf("-sheet-id and -folder-id only apply when -output sheets is set")
 		}
@@ -207,4 +215,18 @@ Examples:
 		Target:        target,
 		TitleOverride: *title,
 	}.Run(ctx)
+}
+
+// validateXlsxPath checks that path is a usable xlsx file path before any
+// network fetching begins. It rejects directories and paths without a .xlsx
+// extension so the user gets a clear error rather than a cryptic save failure.
+func validateXlsxPath(path string) error {
+	if info, err := os.Stat(path); err == nil && info.IsDir() {
+		return fmt.Errorf("-xlsx-file %q is a directory: provide a full file path, e.g. %s",
+			path, filepath.Join(path, "greeksheet.xlsx"))
+	}
+	if !strings.EqualFold(filepath.Ext(path), ".xlsx") {
+		return fmt.Errorf("-xlsx-file %q must have a .xlsx extension", path)
+	}
+	return nil
 }
