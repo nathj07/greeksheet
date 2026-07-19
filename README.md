@@ -218,7 +218,7 @@ Exactly one of `-input` or `-ref` must be supplied.
 | `-input` | | Path to the input text file of Greek verses (**mutually exclusive with `-ref`**) |
 | `-ref` | | Reference range to fetch from greekbible.com. Use `"Book ch:v-v"` or `"Book ch:v-ch:v"` for a verse range (single tab); use `"Book ch-ch"` for whole chapters (one tab per chapter, detected automatically); use `"Book ch"` for a single whole chapter (**mutually exclusive with `-input`**) |
 | `-output` | `sheets` | Output type: `sheets` (Google Sheets) or `xlsx` (local Excel file, requires `-xlsx-file`) |
-| `-title` | input filename (without extension), or the ref string | Title for a **new** spreadsheet (ignored when `-sheet-id` is used) |
+| `-title` | input filename (without extension), or the ref string | Title for a **new** spreadsheet (ignored when `-sheet-id` is used; ignored for `-output xlsx`) |
 | **Google Sheets flags** | | *(only used with `-output sheets`)* |
 | `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to (**mutually exclusive with `-folder-id`**) |
 | `-folder-id` | *(omit to create in Drive root)* | Google Drive folder ID to create the **new** spreadsheet inside (**mutually exclusive with `-sheet-id`**) |
