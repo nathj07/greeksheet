@@ -85,8 +85,10 @@ func openOrCreate(path string) (f *excelize.File, isNew bool, err error) {
 	if err == nil {
 		return f, false, nil
 	}
-	// Any error from OpenFile (including "file not found") means we start fresh.
-	return excelize.NewFile(), true, nil
+	if errors.Is(err, os.ErrNotExist) {
+		return excelize.NewFile(), true, nil
+	}
+	return nil, false, fmt.Errorf("open %s: %w", path, err)
 }
 
 // ensureSheet returns the name of a sheet to write into, creating it when
