@@ -55,7 +55,7 @@ greeksheet-windows-amd64.exe [flags]
 
 ### Build from source
 
-If you prefer to compile yourself, you need Go 1.21 or later:
+If you prefer to compile yourself, you need Go 1.25 or later:
 
 ```bash
 go build -o greeksheet .
@@ -88,7 +88,7 @@ Generated using `./greeksheet -sheet-id <my-sheet-id> -ref "John 9:1-23"`, detai
 ## Prerequisites
 
 - A Google account *(only required for `-output sheets`)*
-- Go 1.21 or later *(only required if building from source)*
+- Go 1.25 or later *(only required if building from source)*
 
 ## Authentication (Google Sheets output only)
 
@@ -379,7 +379,7 @@ Contributions are welcome. Here's what you need to know before opening a PR.
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.25 or later
 - A Google OAuth client secret for local testing of the `sheets` output — see [Build from source](#build-from-source) and [Authentication](#authentication-google-sheets-output-only)
 
 ### Running tests locally
