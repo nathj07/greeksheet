@@ -1,7 +1,19 @@
 # greeksheet
 
-A command-line tool that builds a formatted Google Sheet for Greek New Testament
-translation practice. It supports two input modes:
+A command-line tool that builds a formatted spreadsheet for Greek New Testament
+translation practice. It supports two **output** types and two **input** modes.
+
+## Output types
+
+| Flag | What it produces | Google account needed? |
+|------|-----------------|----------------------|
+| `-output sheets` *(default)* | A Google Sheets spreadsheet — URL printed at the end | Yes (browser opens once) |
+| `-output xlsx` | A local Excel `.xlsx` file — file path printed at the end | No |
+
+Both output types produce **identical layout and formatting**: the same
+colour-coded rows, merged cells, column widths, and 12 pt font.
+
+## Input modes
 
 - **File mode** (`-input`): read verses from a plain-text file copied from
   [greekbible.com](https://greekbible.com).
@@ -43,7 +55,7 @@ greeksheet-windows-amd64.exe [flags]
 
 ### Build from source
 
-If you prefer to compile yourself, you need Go 1.21 or later:
+If you prefer to compile yourself, you need Go 1.25 or later:
 
 ```bash
 go build -o greeksheet .
@@ -52,7 +64,7 @@ go build -o greeksheet .
 
 ## What it produces
 
-For each verse the sheet contains six rows:
+For each verse the spreadsheet contains eight rows:
 
 | Row label | Colour | Purpose                                                                                         |
 |-----------|--------|-------------------------------------------------------------------------------------------------|
@@ -75,15 +87,15 @@ Generated using `./greeksheet -sheet-id <my-sheet-id> -ref "John 9:1-23"`, detai
 
 ## Prerequisites
 
-- A Google account
-- Go 1.21 or later *(only required if building from source)*
+- A Google account *(only required for `-output sheets`)*
+- Go 1.25 or later *(only required if building from source)*
 
-## Authentication
+## Authentication (Google Sheets output only)
 
-The first time you run greeksheet a browser tab opens asking you to sign in
-and approve the requested permissions. After you click **Allow**, the tab
-shows "Authentication successful — you can close this tab." and the tool
-continues automatically.
+The first time you run greeksheet with `-output sheets` (the default) a browser
+tab opens asking you to sign in and approve the requested permissions. After you
+click **Allow**, the tab shows "Authentication successful — you can close this
+tab." and the tool continues automatically.
 
 The token is cached at `~/.config/greeksheet/token.json` (macOS:
 `~/Library/Application Support/greeksheet/token.json`). Every subsequent run
@@ -94,6 +106,9 @@ is silent — no browser, no extra steps.
 > [Google Account security page](https://myaccount.google.com/permissions).
 
 Refresh tokens are typically valid for ~6 months of inactivity; if yours expires (or is revoked), the next run will ask you to re-authenticate.
+
+When using `-output xlsx` no Google account is needed and authentication is
+skipped entirely.
 
 ## Input modes
 
@@ -145,8 +160,8 @@ each chapter page is fetched.
 ### Whole-chapter fetch (`-ref "Book ch-ch"` or `-ref "Book ch"`)
 
 When the reference is in `"<Book> <startChapter>-<endChapter>"` format,
-greeksheet automatically fetches entire chapters and creates one Google Sheets
-tab per chapter, named by chapter number (`"1"`, `"2"`, …). No extra flag is
+greeksheet automatically fetches entire chapters and creates one tab per
+chapter, named by chapter number (`"1"`, `"2"`, …). No extra flag is
 needed — the format is detected automatically.
 
 For a single chapter, you can use the shorter `"<Book> <chapter>"` form instead
@@ -202,10 +217,14 @@ Exactly one of `-input` or `-ref` must be supplied.
 |------|---------|-------------|
 | `-input` | | Path to the input text file of Greek verses (**mutually exclusive with `-ref`**) |
 | `-ref` | | Reference range to fetch from greekbible.com. Use `"Book ch:v-v"` or `"Book ch:v-ch:v"` for a verse range (single tab); use `"Book ch-ch"` for whole chapters (one tab per chapter, detected automatically); use `"Book ch"` for a single whole chapter (**mutually exclusive with `-input`**) |
-| `-title` | input filename (without extension), or the ref string | Title for a **new** Google Sheet (ignored when `-sheet-id` is used) |
+| `-output` | `sheets` | Output type: `sheets` (Google Sheets) or `xlsx` (local Excel file, requires `-xlsx-file`) |
+| `-title` | input filename (without extension), or the ref string | Title for a **new** spreadsheet (ignored when `-sheet-id` is used; ignored for `-output xlsx`) |
+| **Google Sheets flags** | | *(only used with `-output sheets`)* |
 | `-sheet-id` | *(omit to create a new sheet)* | ID of an **existing** Google Spreadsheet to add a new tab to (**mutually exclusive with `-folder-id`**) |
 | `-folder-id` | *(omit to create in Drive root)* | Google Drive folder ID to create the **new** spreadsheet inside (**mutually exclusive with `-sheet-id`**) |
 | `-verbose` | `false` | Log Sheets API retry attempts (429 Too Many Requests) to stderr |
+| **xlsx flags** | | *(only used with `-output xlsx`)* |
+| `-xlsx-file` | | Path to the `.xlsx` file to write — created if it does not exist, tabs appended if it does |
 
 ### Finding a spreadsheet ID
 
@@ -238,11 +257,14 @@ appear in your Drive root.
   typically appears in the spreadsheet title instead.
 - **Whole-chapter fetch**: each tab is named by chapter number only, e.g.
   `1`, `2`, `3`.
+- **xlsx output**: Excel sheet names may not contain `:`, so verse-range tab
+  names use `.` as a separator instead (e.g. `1.1-1.14`). Whole-chapter tabs
+  are unchanged (`1`, `2`, `3`).
 
 ### Examples
 
 ```bash
-# File mode — create a new spreadsheet; tab named from the verse range
+# File mode — create a new Google spreadsheet; tab named from the verse range
 go run . -input 1cor13.txt
 
 # File mode — set a custom spreadsheet title
@@ -251,7 +273,7 @@ go run . -input 1cor13.txt -title "1 Corinthians study"
 # File mode — add a new tab to an existing spreadsheet
 go run . -input 1cor14.txt -sheet-id <ID FROM URL OF EXISTING SHEET>
 
-# Fetch mode — create a new spreadsheet from a reference range
+# Fetch mode — create a new Google spreadsheet from a reference range
 go run . -ref "John 1:1-14" -title "John 1"
 
 # Fetch mode — cross-chapter range
@@ -274,11 +296,23 @@ go run . -ref "John 1:1-14" -title "John 1" -folder-id <FOLDER ID FROM DRIVE URL
 
 # Whole-chapter fetch — create a new spreadsheet in a specific Drive folder
 go run . -ref "Ephesians 1-6" -title "Ephesians" -folder-id <FOLDER ID FROM DRIVE URL>
+
+# xlsx output — create a new file (no Google account needed)
+go run . -output xlsx -ref "John 1:1-14" -xlsx-file ~/sheets/john.xlsx
+
+# xlsx output — whole-chapter fetch into a new file
+go run . -output xlsx -ref "Ephesians 1-6" -xlsx-file ~/sheets/ephesians.xlsx
+
+# xlsx output — append more tabs to an existing file
+go run . -output xlsx -ref "Philippians 1-4" -xlsx-file ~/study.xlsx
+
+# xlsx output — file mode
+go run . -output xlsx -input practice.txt -xlsx-file ~/sheets/practice.xlsx
 ```
 
 ## Output
 
-### Verse-range fetch (`-ref "Book ch:v-v"`)
+### Google Sheets (default)
 
 First run (browser opens once):
 
@@ -309,6 +343,23 @@ Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
 ```
 
+The sheet is automatically shared with "anyone with the link can view", so you
+can open it on any device without extra steps.
+
+### xlsx output
+
+No authentication step — output goes straight to disk:
+
+```
+Fetching Greek text for "John 1:1-14" from greekbible.com…
+  Fetching John chapter 1…
+Parsed 14 verses
+…
+
+Done! Open your sheet at:
+  /home/user/sheets/John 1.xlsx
+```
+
 ### Whole-chapter fetch (`-ref "Book ch-ch"` or `-ref "Book ch"`)
 
 ```
@@ -322,17 +373,14 @@ Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
 ```
 
-The sheet is automatically shared with "anyone with the link can edit", so you
-can open it on any device without extra steps.
-
 ## Contributing
 
 Contributions are welcome. Here's what you need to know before opening a PR.
 
 ### Prerequisites
 
-- Go 1.21 or later
-- A Google OAuth client secret for local testing — see [Build from source](#build-from-source) and [Authentication](#authentication)
+- Go 1.25 or later
+- A Google OAuth client secret for local testing of the `sheets` output — see [Build from source](#build-from-source) and [Authentication](#authentication-google-sheets-output-only)
 
 ### Running tests locally
 
