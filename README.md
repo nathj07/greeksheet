@@ -64,7 +64,7 @@ go build -o greeksheet .
 
 ## What it produces
 
-For each verse the spreadsheet contains six rows:
+For each verse the spreadsheet contains eight rows:
 
 | Row label | Colour | Purpose                                                                                         |
 |-----------|--------|-------------------------------------------------------------------------------------------------|
