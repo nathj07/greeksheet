@@ -12,11 +12,13 @@ package xlsx
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/nathj07/greeksheet/internal/document"
-	excelize "github.com/xuri/excelize/v2"
+	"github.com/xuri/excelize/v2"
 )
 
 // Options configure where the xlsx Target writes its output.
