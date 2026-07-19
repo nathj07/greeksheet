@@ -4,22 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>greeksheet — Greek NT practice sheets for Google Sheets</title>
-  <meta name="description" content="A command-line tool that builds beautifully formatted Greek New Testament practice spreadsheets in Google Sheets. One download, one browser click, then completely silent.">
+  <title>greeksheet — Greek NT practice sheets for Google Sheets or Excel</title>
+  <meta name="description" content="A command-line tool that builds beautifully formatted Greek New Testament practice spreadsheets in Google Sheets or local Excel files. One download, zero setup.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://nathj07.github.io/greeksheet/">
-  <meta property="og:title" content="greeksheet — Greek NT practice sheets for Google Sheets">
-  <meta property="og:description" content="A command-line tool that builds beautifully formatted Greek New Testament practice spreadsheets in Google Sheets. One download, one browser click, then completely silent.">
+  <meta property="og:title" content="greeksheet — Greek NT practice sheets for Google Sheets or Excel">
+  <meta property="og:description" content="A command-line tool that builds beautifully formatted Greek New Testament practice spreadsheets in Google Sheets or local Excel files. One download, zero setup.">
   <meta property="og:image" content="https://nathj07.github.io/greeksheet/images/screenshot.png">
   <meta property="og:image:width" content="2115">
   <meta property="og:image:height" content="701">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="greeksheet — Greek NT practice sheets for Google Sheets">
-  <meta name="twitter:description" content="One download, one browser click, then completely silent.">
+  <meta name="twitter:title" content="greeksheet — Greek NT practice sheets for Google Sheets or Excel">
+  <meta name="twitter:description" content="Output to Google Sheets or a local Excel file. One download, zero setup.">
   <meta name="twitter:image" content="https://nathj07.github.io/greeksheet/images/screenshot.png">
 
   <link rel="canonical" href="https://nathj07.github.io/greeksheet/">
@@ -35,7 +35,7 @@
     "name": "greeksheet",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "macOS, Linux, Windows",
-    "description": "Command-line tool that builds formatted Greek New Testament practice spreadsheets in Google Sheets.",
+    "description": "Command-line tool that builds formatted Greek New Testament practice spreadsheets in Google Sheets or local Excel (.xlsx) files.",
     "url": "https://nathj07.github.io/greeksheet/",
     "downloadUrl": "https://github.com/nathj07/greeksheet/releases/latest",
     "license": "https://opensource.org/licenses/MIT",
@@ -663,9 +663,10 @@
           Greek NT practice sheets,<br>built in seconds
         </h1>
         <p class="hero-sub">
-          greeksheet creates beautifully formatted Google Sheets for verse-by-verse
+          greeksheet creates beautifully formatted spreadsheets for verse-by-verse
           translation practice — fetching text directly from greekbible.com.
-          No setup, no secrets file. Just download and run.
+          Output to <strong>Google Sheets</strong> or a <strong>local Excel file</strong>.
+          No setup required for the xlsx output.
         </p>
 
         <div class="screenshot-wrap">
@@ -719,8 +720,14 @@
                 <pre>chmod +x greeksheet-darwin-arm64</pre>
               </li>
               <li>
-                <strong>Run greeksheet:</strong>
+                <strong>Run greeksheet — Google Sheets output:</strong>
                 <pre>./greeksheet-darwin-arm64 -ref "John 1:1-14" -title "John 1"</pre>
+              </li>
+              <li>
+                <strong>Or write a local Excel file (no Google account needed):</strong>
+                <pre>./greeksheet-darwin-arm64 -output xlsx \
+  -ref "John 1:1-14" \
+  -xlsx-file ~/Desktop/john.xlsx</pre>
               </li>
             </ol>
             <p class="run-note">
@@ -740,8 +747,14 @@
                 <pre>cd %USERPROFILE%\Downloads</pre>
               </li>
               <li>
-                <strong>Run greeksheet:</strong>
+                <strong>Run greeksheet — Google Sheets output:</strong>
                 <pre>greeksheet-windows-amd64.exe -ref "John 1:1-14" -title "John 1"</pre>
+              </li>
+              <li>
+                <strong>Or write a local Excel file (no Google account needed):</strong>
+                <pre>greeksheet-windows-amd64.exe -output xlsx ^
+  -ref "John 1:1-14" ^
+  -xlsx-file %USERPROFILE%\Desktop\john.xlsx</pre>
               </li>
             </ol>
           </div>
@@ -768,14 +781,16 @@
           <li class="feature-card">
             <span class="feature-icon" aria-hidden="true">🔒</span>
             <h3>No setup required</h3>
-            <p>No Google Cloud project. No secrets file. OAuth credentials
-               are compiled into the binary — safe by design for desktop apps.</p>
+            <p>No Google Cloud project. No secrets file. For Google Sheets output,
+               OAuth credentials are compiled into the binary — safe by design for
+               desktop apps. For xlsx output, no Google account is needed at all.</p>
           </li>
           <li class="feature-card">
-            <span class="feature-icon" aria-hidden="true">🖱️</span>
-            <h3>One-time sign-in</h3>
-            <p>The browser opens once so you can click Allow. After that the
-               token is cached locally and every run is completely silent.</p>
+            <span class="feature-icon" aria-hidden="true">📄</span>
+            <h3>Two output types</h3>
+            <p>Write to <strong>Google Sheets</strong> (opens in any browser, shared
+               automatically) or a <strong>local Excel file</strong> with
+               <code>-output xlsx</code> — no Google account needed for xlsx.</p>
           </li>
           <li class="feature-card">
             <span class="feature-icon" aria-hidden="true">📥</span>
@@ -800,7 +815,7 @@
       <div class="container">
         <p class="section-label" aria-hidden="true">How it works</p>
         <h2 id="how-heading" class="section-heading">
-          From command line to Google Sheets in four steps
+          From command line to spreadsheet in seconds
         </h2>
 
         <ol class="steps">
@@ -813,21 +828,27 @@
           </li>
           <li class="step">
             <h3>Run</h3>
-            <p>Pass a reference range or an input file:</p>
-            <pre aria-label="Example command: fetch John 1:1–14">./greeksheet -ref "John 1:1-14" \
+            <p>Pass a reference range or an input file. Choose your output type:</p>
+            <pre aria-label="Example: Google Sheets output">./greeksheet -ref "John 1:1-14" \
   -title "John 1"</pre>
+            <pre aria-label="Example: xlsx output (no Google account needed)">./greeksheet -output xlsx \
+  -ref "John 1:1-14" \
+  -xlsx-file ~/sheets/john.xlsx</pre>
           </li>
           <li class="step">
-            <h3>Authorise</h3>
-            <p>Your browser opens the Google consent screen. Click <strong>Allow</strong>.
-               The tab shows "Authentication successful" and closes. This happens
-               only once — the token is cached for future runs.</p>
+            <h3>Authorise <em>(Sheets only)</em></h3>
+            <p>For Google Sheets output, your browser opens the Google consent screen.
+               Click <strong>Allow</strong>. This happens only once — the token is cached
+               for future runs. For xlsx output, this step is skipped entirely.</p>
           </li>
           <li class="step">
             <h3>Open your sheet</h3>
-            <p>greeksheet prints the link:</p>
-            <pre aria-label="Example output with sheet URL">Done! Open your sheet at:
-  https://docs.google.com/…</pre>
+            <p>greeksheet prints the location — a URL for Google Sheets, or a file path
+               for xlsx:</p>
+            <pre aria-label="Example output">Done! Open your sheet at:
+  https://docs.google.com/…
+  — or —
+  /home/user/sheets/John 1.xlsx</pre>
           </li>
         </ol>
       </div>
@@ -863,6 +884,24 @@
         <h2 id="faq-heading" class="section-heading">Common Questions</h2>
 
         <div class="faq-list">
+
+          <details>
+            <summary>Can I create an Excel file instead of a Google Sheet?</summary>
+            <div class="faq-body">
+              <p>Yes — use <code>-output xlsx</code>. This writes a local <code>.xlsx</code>
+                 file that opens in Excel, LibreOffice, or Numbers. No Google account is
+                 required and the authentication step is skipped entirely.</p>
+              <p>Pass <code>-xlsx-file &lt;path&gt;</code> with the path to write. The
+                 file is created if it does not exist; tabs are appended to it if it does:</p>
+              <pre style="margin-top:.5rem;background:#1e293b;color:#e2e8f0;border-radius:6px;padding:.6rem .9rem;font-family:var(--mono);font-size:.78rem;overflow-x:auto;"># New file at ~/sheets/John 1.xlsx (created automatically)
+greeksheet -output xlsx -ref "John 1:1-14" -xlsx-file ~/sheets/john.xlsx
+
+# Append tabs to an existing file
+greeksheet -output xlsx -ref "Philippians 1-4" -xlsx-file ~/study.xlsx</pre>
+              <p>The layout and formatting — colour-coded rows, merged cells, column
+                 widths — are identical to the Google Sheets output.</p>
+            </div>
+          </details>
 
           <details>
             <summary>Where is my auth token stored?</summary>
