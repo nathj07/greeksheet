@@ -210,11 +210,16 @@ Examples:
 		})
 	}
 
-	return app.App{
+	path, err := app.App{
 		Source:        src,
 		Target:        target,
 		TitleOverride: *title,
 	}.Run(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("\nDone! Open your sheet at:\n  %s\n", path)
+	return nil
 }
 
 // validateXlsxPath checks that path is a usable xlsx file path before any

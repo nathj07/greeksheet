@@ -10,16 +10,22 @@ import (
 )
 
 func main() {
+	w := makeUI()
+	w.ShowAndRun()
+}
+
+func makeUI() fyne.Window {
 	uiApp := app.NewWithID("greeksheet")
-	myWindow := uiApp.NewWindow("Greek Sheet UI")
-	myWindow.Resize(fyne.NewSize(400, 300))
+	w := uiApp.NewWindow("Greek Sheet UI")
+	w.Resize(fyne.NewSize(400, 300))
 	tabs := container.NewAppTabs(
 		defineGoogleSheetsTab(),
-		defineExcelTab(myWindow),
+		defineExcelTab(w),
 	)
 	tabs.SetTabLocation(container.TabLocationTop)
-	myWindow.SetContent(tabs)
-	myWindow.ShowAndRun()
+	w.SetContent(tabs)
+
+	return w
 }
 
 func defineGoogleSheetsTab() *container.TabItem {
@@ -35,6 +41,8 @@ func defineGoogleSheetsTab() *container.TabItem {
 		},
 		OnSubmit: func() {
 			// Handle form submission here
+			// This would need to instantiate the App and call Run, we do want that to return the final URL so that it can
+			// be displayed in the UI, but for now just print the values to the console
 			print("Sheet ID:", sheetID.Text, "\n", "Folder ID:", folderID.Text, "\n", "Title:", title.Text)
 		},
 	}
@@ -52,17 +60,20 @@ func defineExcelTab(w fyne.Window) *container.TabItem {
 
 	ti.Content = &widget.Form{
 		Items: []*widget.FormItem{
+			// select an existing file to add a new sheet to
 			{Text: "Existing File", Widget: filePath},
 			{Text: "Selected File", Widget: selectedFile},
+			// or cerate a new file in a folder
 			{Text: "Folder Path", Widget: folderPath},
 			{Text: "Selected Folder", Widget: selectedFolder},
 		},
 		OnSubmit: func() {
 			// Handle form submission here
+			// This would need to instantiate the App and call Run, we do want that to return the final URL so that it can
+			// be displayed in the UI, but for now just print the values to the console
 			print("File Path:", fileURI)
 		},
 	}
-
 	return ti
 }
 
@@ -107,4 +118,6 @@ TODO
 * output should be a link on the form to open the local file/sheet in browser
 * make the UI look good
 * write tests for the UI code
+* consider updating the source/greekbible.go to be more like a standard client, and then I can use httpmock to test the various functions on there.
+Note that the Source struct remains important
 */
