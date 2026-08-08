@@ -6,10 +6,10 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
+  # ── macOS (Apple Silicon) ──────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -26,19 +26,66 @@ jobs:
           LDFLAGS: >-
             -X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
             -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
-        run: GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o greeksheet-darwin-arm64 ./cmd/greeksheet
+        run: GOARCH=arm64 go build -ldflags "$LDFLAGS" -o greeksheet-darwin-arm64 ./cmd/greeksheet
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifact
+          path: greeksheet-darwin-arm64
+
+  # ── Windows (amd64) ────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # goversioninfo generates a resource.syso file containing Windows PE
+      # version metadata (FileDescription, ProductName, etc.). The Go toolchain
+      # links any *.syso it finds in the package directory automatically, so no
+      # extra build flags are needed. Embedding version info reduces the
+      # likelihood of AV tools flagging the binary as suspicious.
+      - name: Install goversioninfo
+        run: go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
+        shell: pwsh
+
+      - name: Generate Windows version resource
+        run: goversioninfo -o ./cmd/greeksheet/resource.syso ./cmd/greeksheet/versioninfo.json
+        shell: pwsh
 
       - name: Build Windows
         env:
+          GOARCH: amd64
           LDFLAGS: >-
             -X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
             -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
-        run: GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o greeksheet-windows-amd64.exe ./cmd/greeksheet
+        run: go build -ldflags "$env:LDFLAGS" -o greeksheet-windows-amd64.exe ./cmd/greeksheet
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifact
+          path: greeksheet-windows-amd64.exe
+
+  # ── Create GitHub Release ──────────────────────────────────────────────────
+  # Only runs after both platform builds succeed.
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            greeksheet-darwin-arm64
-            greeksheet-windows-amd64.exe
+            dist/macos-artifact/greeksheet-darwin-arm64
+            dist/windows-artifact/greeksheet-windows-amd64.exe
           generate_release_notes: true
