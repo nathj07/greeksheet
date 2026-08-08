@@ -132,7 +132,10 @@ func newResultCard() (*widget.Hyperlink, *widget.Card) {
 // scripture reference resets any previously picked input file. This keeps the
 // two input sources mutually exclusive without requiring dialog callbacks.
 func wireRefClearsFile(ref *widget.Entry, fileURI *fyne.URI, label *widget.Label) {
-	ref.OnChanged = func(_ string) {
+	ref.OnChanged = func(s string) {
+		if strings.TrimSpace(s) == "" {
+			return
+		}
 		*fileURI = nil
 		label.SetText("No file selected")
 	}
