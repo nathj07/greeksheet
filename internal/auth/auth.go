@@ -36,10 +36,15 @@ var (
 )
 
 // oauthConfig resolves OAuth credentials and returns a fresh *oauth2.Config.
-// It tries three sources in priority order:
+// It tries four sources in priority order:
 //  1. Variables injected at build time via -ldflags (used in release binaries).
 //  2. GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET environment variables (CI / testing).
-//  3. client_secret.json in the working directory (local development).
+//  3. client_secret.json in the platform user-config directory
+//     (e.g. ~/Library/Application Support/greeksheet/ on macOS). This is the
+//     recommended location for development use with the GUI, since the app
+//     may not be launched from the repo root.
+//  4. client_secret.json in the current working directory (legacy fallback for
+//     the CLI, which is always run from the repo root).
 //
 // A fresh struct is returned on each call so that doBrowserFlow can safely
 // set RedirectURL without affecting other callers.
@@ -62,21 +67,41 @@ func oauthConfig() (*oauth2.Config, error) {
 		}, nil
 	}
 
-	// Fall back to a local secrets file for developers building from source.
-	data, err := os.ReadFile("client_secret.json")
-	if err == nil {
+	// Try the user config directory first — this works regardless of the
+	// working directory, so both the CLI and the GUI find the file reliably.
+	if configDir, err := os.UserConfigDir(); err == nil {
+		configPath := filepath.Join(configDir, "greeksheet", "client_secret.json")
+		if data, err := os.ReadFile(configPath); err == nil {
+			return google.ConfigFromJSON(data, scopeSheets, scopeDrive)
+		}
+	}
+
+	// Fall back to the working directory for developers running the CLI from
+	// the repo root where the file is checked in (but not committed to git).
+	if data, err := os.ReadFile("client_secret.json"); err == nil {
 		return google.ConfigFromJSON(data, scopeSheets, scopeDrive)
 	}
 
 	return nil, fmt.Errorf(
-		"OAuth credentials not found: download a release binary (credentials are built in), " +
-			"set GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET environment variables, " +
-			"or place a client_secret.json file in the working directory")
+		"OAuth credentials not found: download a release binary (credentials are built in), "+
+			"set GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET environment variables, "+
+			"or place client_secret.json in %s or the working directory",
+		placeholderConfigPath())
+}
+
+// placeholderConfigPath returns a human-readable example config path for use
+// in error messages. It returns a static string if UserConfigDir fails.
+func placeholderConfigPath() string {
+	if dir, err := os.UserConfigDir(); err == nil {
+		return filepath.Join(dir, "greeksheet", "client_secret.json")
+	}
+	return "$XDG_CONFIG_HOME/greeksheet/client_secret.json"
 }
 
 // tokenCachePath returns the path where the OAuth2 token is cached between runs.
 // The file lives at $XDG_CONFIG_HOME/greeksheet/token.json (Unix) or
-// ~/Library/Application Support/greeksheet/token.json (macOS).
+// ~/Library/Application Support/greeksheet/token.json (macOS) or
+// %AppData%\greeksheet\token.json (Windows).
 func tokenCachePath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {

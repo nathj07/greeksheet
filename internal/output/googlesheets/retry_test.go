@@ -46,7 +46,7 @@ func zeroDelay(t *testing.T) {
 	t.Cleanup(func() { backoffDelayFn = orig })
 }
 
-func TestWithRetry_success(t *testing.T) {
+func TestWithRetrySuccess(t *testing.T) {
 	calls := 0
 	err := withRetry(context.Background(), false, func() error {
 		calls++
@@ -56,7 +56,7 @@ func TestWithRetry_success(t *testing.T) {
 	assert.Equal(t, 1, calls)
 }
 
-func TestWithRetry_success_after_retries(t *testing.T) {
+func TestWithRetrySuccessAfterRetries(t *testing.T) {
 	zeroDelay(t)
 
 	// fn returns 429 twice, then succeeds.
@@ -72,7 +72,7 @@ func TestWithRetry_success_after_retries(t *testing.T) {
 	assert.Equal(t, 3, calls)
 }
 
-func TestWithRetry_non_rate_limit_error(t *testing.T) {
+func TestWithRetryNonRateLimitError(t *testing.T) {
 	// Non-429 errors must be returned immediately without retrying.
 	calls := 0
 	sentinel := apiErr(500)
@@ -84,7 +84,7 @@ func TestWithRetry_non_rate_limit_error(t *testing.T) {
 	assert.Equal(t, 1, calls, "should not retry on non-429 errors")
 }
 
-func TestWithRetry_exhausts_retries(t *testing.T) {
+func TestWithRetryExhaustsRetries(t *testing.T) {
 	zeroDelay(t)
 
 	// fn always returns 429 — withRetry should give up after maxRetryAttempts+1 calls.
@@ -98,7 +98,7 @@ func TestWithRetry_exhausts_retries(t *testing.T) {
 	assert.Equal(t, maxRetryAttempts+1, calls)
 }
 
-func TestWithRetry_context_cancelled(t *testing.T) {
+func TestWithRetryContextCancelled(t *testing.T) {
 	// Use a long delay so that only ctx.Done fires in the select, not the timer.
 	orig := backoffDelayFn
 	backoffDelayFn = func(int) time.Duration { return time.Minute }
@@ -113,7 +113,7 @@ func TestWithRetry_context_cancelled(t *testing.T) {
 	assert.Equal(t, context.Canceled, err)
 }
 
-func TestWithRetry_verbose_logs_to_stderr(t *testing.T) {
+func TestWithRetryVerboseLogsToStderr(t *testing.T) {
 	zeroDelay(t)
 
 	// Smoke-test that verbose=true doesn't panic or error; actual stderr output
@@ -129,7 +129,7 @@ func TestWithRetry_verbose_logs_to_stderr(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestBackoffDelay_bounds(t *testing.T) {
+func TestBackoffDelayBounds(t *testing.T) {
 	// For each attempt the delay must be in [0, maxWait) where
 	// maxWait = baseRetryDelay<<attempt (capped at 32 s).
 	// Run many iterations to gain confidence in the random range.

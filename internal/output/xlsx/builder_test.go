@@ -13,7 +13,7 @@ import (
 // trackWordWidth
 // ---------------------------------------------------------------------------
 
-func TestTrackWordWidth_growsSlice(t *testing.T) {
+func TestTrackWordWidthGrowsSlice(t *testing.T) {
 	var widths []int
 	trackWordWidth(&widths, 2, "hi") // col 2 (1-based) = index 1, 2 runes
 
@@ -21,7 +21,7 @@ func TestTrackWordWidth_growsSlice(t *testing.T) {
 	assert.Equal(t, 2, widths[1])
 }
 
-func TestTrackWordWidth_keepsMax(t *testing.T) {
+func TestTrackWordWidthKeepsMax(t *testing.T) {
 	var widths []int
 	trackWordWidth(&widths, 2, "ab")    // col B: 2 runes
 	trackWordWidth(&widths, 2, "abcde") // col B: 5 runes — wider
@@ -30,7 +30,7 @@ func TestTrackWordWidth_keepsMax(t *testing.T) {
 	assert.Equal(t, 5, widths[1]) // stored at index col-1 = 1
 }
 
-func TestTrackWordWidth_greekRunes(t *testing.T) {
+func TestTrackWordWidthGreekRunes(t *testing.T) {
 	// "λόγος" is 5 Unicode code points, not 5 bytes.
 	var widths []int
 	trackWordWidth(&widths, 2, "λόγος") // col B → index 1
@@ -64,7 +64,7 @@ func TestStyleCacheBuildsWithoutError(t *testing.T) {
 // applyRowStyleRange
 // ---------------------------------------------------------------------------
 
-func TestApplyRowStyleRange_noOpWhenFirstColExceedsLast(t *testing.T) {
+func TestApplyRowStyleRangeNoOpWhenFirstColExceedsLast(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -80,7 +80,7 @@ func TestApplyRowStyleRange_noOpWhenFirstColExceedsLast(t *testing.T) {
 // setCellWithStyle
 // ---------------------------------------------------------------------------
 
-func TestSetCellWithStyle_setsValueAndStyle(t *testing.T) {
+func TestSetCellWithStyleSetsValueAndStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -102,7 +102,7 @@ func TestSetCellWithStyle_setsValueAndStyle(t *testing.T) {
 // mergeWordCols
 // ---------------------------------------------------------------------------
 
-func TestMergeWordCols_registersMerge(t *testing.T) {
+func TestMergeWordColsRegistersMerge(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -127,7 +127,7 @@ func TestMergeWordCols_registersMerge(t *testing.T) {
 // renderTab — column A width
 // ---------------------------------------------------------------------------
 
-func TestRenderTab_colAWidth(t *testing.T) {
+func TestRenderTabColAWidth(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -152,7 +152,7 @@ func TestRenderTab_colAWidth(t *testing.T) {
 //
 // "word"  = 4 runes → max(4×9+16, 50) = 52 px → 52/7 ≈ 7.43 units
 // "λόγος" = 5 runes → max(5×9+16, 50) = 61 px → 61/7 ≈ 8.71 units
-func TestRenderTab_wordColWidths(t *testing.T) {
+func TestRenderTabWordColWidths(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -179,7 +179,7 @@ func TestRenderTab_wordColWidths(t *testing.T) {
 // verse 1: col B="hi"(2), col C="elephant"(8)
 // verse 2: col B="longer"(6)
 // col B: max(2,6)=6 → max(6×9+16,50)=70 px;  col C: 8 → max(8×9+16,50)=88 px
-func TestRenderTab_wordColWidths_maxAcrossVerses(t *testing.T) {
+func TestRenderTabWordColWidthsMaxAcrossVerses(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -205,7 +205,7 @@ func TestRenderTab_wordColWidths_maxAcrossVerses(t *testing.T) {
 // for very short words.
 //
 // "a" = 1 rune → 1×9+16 = 25 px → clamped to 50 px → 50/7 ≈ 7.14 units
-func TestRenderTab_wordColWidths_minimumWidth(t *testing.T) {
+func TestRenderTabWordColWidthsMinimumWidth(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -224,7 +224,7 @@ func TestRenderTab_wordColWidths_minimumWidth(t *testing.T) {
 // renderTab — heading bold style
 // ---------------------------------------------------------------------------
 
-func TestRenderTab_headingUsesBoldStyle(t *testing.T) {
+func TestRenderTabHeadingUsesBoldStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -245,7 +245,7 @@ func TestRenderTab_headingUsesBoldStyle(t *testing.T) {
 
 // TestRenderTab_verseRowUsesGreyStyle checks that the verse row (row 1 for the
 // first verse) has the grey background style on all word cells.
-func TestRenderTab_verseRowUsesGreyStyle(t *testing.T) {
+func TestRenderTabVerseRowUsesGreyStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -263,7 +263,7 @@ func TestRenderTab_verseRowUsesGreyStyle(t *testing.T) {
 }
 
 // TestRenderTab_ORowUsesBlueStyle confirms the O row (row 4) has the blue background.
-func TestRenderTab_ORowUsesBlueStyle(t *testing.T) {
+func TestRenderTabORowUsesBlueStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -284,7 +284,7 @@ func TestRenderTab_ORowUsesBlueStyle(t *testing.T) {
 }
 
 // TestRenderTab_IRowUsesOrangeStyle confirms the I row uses the orange background.
-func TestRenderTab_IRowUsesOrangeStyle(t *testing.T) {
+func TestRenderTabIRowUsesOrangeStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -300,7 +300,7 @@ func TestRenderTab_IRowUsesOrangeStyle(t *testing.T) {
 }
 
 // TestRenderTab_TRowUsesGreenStyle confirms the T row uses the green background.
-func TestRenderTab_TRowUsesGreenStyle(t *testing.T) {
+func TestRenderTabTRowUsesGreenStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -316,7 +316,7 @@ func TestRenderTab_TRowUsesGreenStyle(t *testing.T) {
 }
 
 // TestRenderTab_CNRowsUsePlainStyle confirms C and N rows have no background colour.
-func TestRenderTab_CNRowsUsePlainStyle(t *testing.T) {
+func TestRenderTabCNRowsUsePlainStyle(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -339,7 +339,7 @@ func TestRenderTab_CNRowsUsePlainStyle(t *testing.T) {
 
 // TestRenderTab_multiWordVerse_mergesOITCNRows verifies that all five label
 // rows have their word columns merged when a verse has more than one word.
-func TestRenderTab_multiWordVerse_mergesOITCNRows(t *testing.T) {
+func TestRenderTabMultiWordVerseMergesOITCNRows(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -367,7 +367,7 @@ func TestRenderTab_multiWordVerse_mergesOITCNRows(t *testing.T) {
 
 // TestRenderTab_singleWordVerse_noMerges confirms no merges when a verse has
 // only one word — there is nothing to merge.
-func TestRenderTab_singleWordVerse_noMerges(t *testing.T) {
+func TestRenderTabSingleWordVerseNoMerges(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -386,7 +386,7 @@ func TestRenderTab_singleWordVerse_noMerges(t *testing.T) {
 // renderTab — heading-only tab produces no merges or word column widths
 // ---------------------------------------------------------------------------
 
-func TestRenderTab_headingOnly_noMergesNoWordCols(t *testing.T) {
+func TestRenderTabHeadingOnlyNoMergesNoWordCols(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -411,7 +411,7 @@ func TestRenderTab_headingOnly_noMergesNoWordCols(t *testing.T) {
 // renderTab — cell values
 // ---------------------------------------------------------------------------
 
-func TestRenderTab_headingRow_value(t *testing.T) {
+func TestRenderTabHeadingRowValue(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -428,7 +428,7 @@ func TestRenderTab_headingRow_value(t *testing.T) {
 
 // TestRenderTab_verseBlock_rowCount confirms the verse block is exactly 8 rows
 // by checking that the cell immediately after is empty.
-func TestRenderTab_verseBlock_rowCount(t *testing.T) {
+func TestRenderTabVerseBlockRowCount(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -444,7 +444,7 @@ func TestRenderTab_verseBlock_rowCount(t *testing.T) {
 	assert.Empty(t, val, "row 9 should be empty — verse block is exactly 8 rows")
 }
 
-func TestRenderTab_verseBlock_verseRow(t *testing.T) {
+func TestRenderTabVerseBlockVerseRow(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -469,7 +469,7 @@ func TestRenderTab_verseBlock_verseRow(t *testing.T) {
 
 // TestRenderTab_verseBlock_ORow confirms the O row holds the label in col A
 // and the words joined with spaces starting at col B.
-func TestRenderTab_verseBlock_ORow(t *testing.T) {
+func TestRenderTabVerseBlockORow(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -489,7 +489,7 @@ func TestRenderTab_verseBlock_ORow(t *testing.T) {
 	assert.Equal(t, "word two", joined)
 }
 
-func TestRenderTab_verseBlock_rowLabels(t *testing.T) {
+func TestRenderTabVerseBlockRowLabels(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -511,7 +511,7 @@ func TestRenderTab_verseBlock_rowLabels(t *testing.T) {
 
 // TestRenderTab_singleWordVerse confirms the O row contains the word when the
 // verse has only one word (no merge is performed in this case).
-func TestRenderTab_singleWordVerse_ORowValue(t *testing.T) {
+func TestRenderTabSingleWordVerseORowValue(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 
@@ -528,7 +528,7 @@ func TestRenderTab_singleWordVerse_ORowValue(t *testing.T) {
 
 // TestRenderTab_multipleVerses confirms each verse block starts at the correct
 // row — the second verse must begin immediately after the first 8-row block.
-func TestRenderTab_multipleVerses_rowPositions(t *testing.T) {
+func TestRenderTabMultipleVersesRowPositions(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
 

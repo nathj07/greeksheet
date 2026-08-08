@@ -21,14 +21,14 @@ type App struct {
 
 // Run loads the document, fails fast if it contains no verses, applies any
 // title override, and renders it — printing the resulting location.
-func (a App) Run(ctx context.Context) error {
+func (a App) Run(ctx context.Context) (string, error) {
 	d, err := a.Source.Load(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if d.TotalVerses() == 0 {
-		return fmt.Errorf("no verses found — check that the reference or input file contains valid content")
+		return "", fmt.Errorf("no verses found — check that the reference or input file contains valid content")
 	}
 	fmt.Printf("Parsed %d verses\n", d.TotalVerses())
 
@@ -38,8 +38,7 @@ func (a App) Run(ctx context.Context) error {
 
 	url, err := a.Target.Render(ctx, d)
 	if err != nil {
-		return err
+		return "", err
 	}
-	fmt.Printf("\nDone! Open your sheet at:\n  %s\n", url)
-	return nil
+	return url, nil
 }
