@@ -42,8 +42,15 @@ A desktop app with a point-and-click interface. Download from the
 | macOS (Apple Silicon / M-series) | `greeksheetui-darwin-arm64.zip` | Unzip, then double-click `Greek Sheet UI.app` |
 | Windows | `greeksheetui-windows-amd64.exe` | Double-click to run |
 
-> **macOS security note:** On first launch, macOS may block the app.
-> Open *System Settings → Privacy & Security* and click **Open Anyway**.
+> **macOS security note:** The app is ad-hoc signed but not notarized. On first
+> launch macOS will show *"Greek Sheet UI" is from an unidentified developer* —
+> open *System Settings → Privacy & Security* and click **Open Anyway**.
+>
+> If you see *"damaged and can't be opened"* instead, run this once in Terminal
+> (adjusting the path to wherever you placed the app):
+> ```
+> xattr -cr "/Applications/Greek Sheet UI.app"
+> ```
 
 ### CLI tool
 

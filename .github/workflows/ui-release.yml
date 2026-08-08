@@ -51,13 +51,15 @@ jobs:
             --app-id io.github.nathj07.greeksheetui \
             --app-version "${{ steps.ver.outputs.val }}" \
             --app-build "${{ github.run_number }}"
-          # Strip the com.apple.quarantine extended attribute that macOS sets on
-          # files created by the build tools. Without this, Gatekeeper treats the
-          # downloaded (unnotarized) bundle as "damaged" on macOS 13+ and refuses
-          # to open it entirely, rather than showing the softer "unidentified
-          # developer" prompt with an "Open Anyway" option.
-          xattr -cr "Greek Sheet UI.app"
-          zip -r "greeksheetui-darwin-arm64.zip" "Greek Sheet UI.app"
+          # Ad-hoc sign the bundle ("-" identity = local self-signed, no paid cert
+          # needed). This moves macOS Gatekeeper from the hard "damaged and can't be
+          # opened" error (shown for completely unsigned apps) to the softer
+          # "unidentified developer" prompt that has an "Open Anyway" button.
+          codesign --force --deep --sign - "Greek Sheet UI.app"
+          # ditto preserves .app bundle symlinks and resource forks correctly.
+          # plain zip -r can dereference symlinks on some macOS versions, producing
+          # a structurally broken bundle.
+          ditto -c -k --sequesterRsrc --keepParent "Greek Sheet UI.app" "greeksheetui-darwin-arm64.zip"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -104,18 +106,21 @@ jobs:
         shell: pwsh
 
       - name: Package Windows app
-        run: |
+        env:
           # fyne package always rebuilds on Windows (to embed icon + manifest as a
           # .syso resource). It reads -ldflags= tokens from GOFLAGS and merges them
           # with its own flags (including -H=windowsgui), so credentials survive the
           # rebuild and no console window appears on launch.
           #
-          # GOFLAGS is set inline here rather than via the env: block because the
-          # two -X flags each contain a space, and the YAML >- scalar would split
-          # them into separate tokens that fyne's GOFLAGS parser cannot reassemble.
-          $cid = "${{ secrets.GOOGLE_CLIENT_ID }}"
-          $csec = "${{ secrets.GOOGLE_CLIENT_SECRET }}"
-          $env:GOFLAGS = "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=$cid -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=$csec"
+          # Each -X flag must be its own -ldflags= token and must use the -X=key=value
+          # form (equals sign before the package path, no space). fyne's GOFLAGS parser
+          # uses strings.Fields() with no quoting awareness, so a single token containing
+          # spaces would be split and the remainder left as bare non-flags, causing:
+          #   go: parsing $GOFLAGS: non-flag "pkg/path..."
+          GOFLAGS: >-
+            -ldflags=-X=github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
+            -ldflags=-X=github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: |
           fyne package `
             --os windows `
             --src ./gui/greeksheetui `
