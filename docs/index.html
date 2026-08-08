@@ -1182,7 +1182,7 @@ greeksheet -ref "Philippians 1-4" -sheet-id &lt;ID from above&gt;</pre>
 
           // Append the release tag as a small inline version badge so users
           // can see exactly which version the button will download.
-          const release = filename.startsWith('greeksheet-') ? cliRelease : guiRelease;
+          const release = id.startsWith('dl-cli-') ? cliRelease : guiRelease;
           if (release) {
             const badge = document.createElement('span');
             badge.textContent = release.tag_name;
