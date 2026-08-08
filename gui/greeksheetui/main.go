@@ -37,7 +37,7 @@ func main() {
 // makeUI builds the complete window. It accepts a Runner so tests can inject a
 // stub without spawning a real Fyne application.
 func makeUI(runner Runner) fyne.Window {
-	uiApp := app.NewWithID("greeksheet")
+	uiApp := app.NewWithID("io.github.nathj07.greeksheetui")
 	w := uiApp.NewWindow("Greek Sheet UI")
 	w.Resize(fyne.NewSize(600, 520))
 
