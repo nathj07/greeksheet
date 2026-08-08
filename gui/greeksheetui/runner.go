@@ -91,8 +91,12 @@ func (AppRunner) RunSheets(ctx context.Context, opts SheetsOptions) (string, err
 
 // buildSource constructs the appropriate Source from a scripture reference
 // string or a local plain-text input file path. Exactly one of ref or
-// inputFile must be non-empty; the function returns an error if both are empty.
+// inputFile must be non-empty; it returns an error when both are empty or both
+// are provided.
 func buildSource(ref, inputFile string) (source.Source, error) {
+	if ref != "" && inputFile != "" {
+		return nil, fmt.Errorf("ref and input file are mutually exclusive: provide one or the other, not both")
+	}
 	if inputFile != "" {
 		return textfile.New(inputFile), nil
 	}
