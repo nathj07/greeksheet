@@ -95,7 +95,7 @@ func placeholderConfigPath() string {
 	if dir, err := os.UserConfigDir(); err == nil {
 		return filepath.Join(dir, "greeksheet", "client_secret.json")
 	}
-	return "~/Library/Application Support/greeksheet/client_secret.json"
+	return "$XDG_CONFIG_HOME/greeksheet/client_secret.json"
 }
 
 // tokenCachePath returns the path where the OAuth2 token is cached between runs.
