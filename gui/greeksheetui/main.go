@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -24,6 +25,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -37,7 +39,7 @@ func main() {
 func makeUI(runner Runner) fyne.Window {
 	uiApp := app.NewWithID("greeksheet")
 	w := uiApp.NewWindow("Greek Sheet UI")
-	w.Resize(fyne.NewSize(480, 400))
+	w.Resize(fyne.NewSize(600, 520))
 
 	u := newUI(w, runner)
 
@@ -67,7 +69,8 @@ type ui struct {
 	xlsxInputFileURI   fyne.URI
 	xlsxRef            *widget.Entry
 	xlsxTitle          *widget.Entry
-	xlsxResult         *widget.Label
+	xlsxResult         *widget.Hyperlink
+	xlsxResultCard     *widget.Card
 
 	// Sheets tab widgets
 	sheetsInputFileLabel *widget.Label
@@ -76,10 +79,14 @@ type ui struct {
 	sheetsSheetID        *widget.Entry
 	sheetsFolderID       *widget.Entry
 	sheetsTitle          *widget.Entry
-	sheetsResult         *widget.Label
+	sheetsResult         *widget.Hyperlink
+	sheetsResultCard     *widget.Card
 }
 
 func newUI(w fyne.Window, runner Runner) *ui {
+	xlsxResult, xlsxResultCard := newResultCard()
+	sheetsResult, sheetsResultCard := newResultCard()
+
 	u := &ui{
 		win:    w,
 		runner: runner,
@@ -89,29 +96,46 @@ func newUI(w fyne.Window, runner Runner) *ui {
 		xlsxInputFileLabel: widget.NewLabel("No file selected"),
 		xlsxRef:            widget.NewEntry(),
 		xlsxTitle:          widget.NewEntry(),
-		xlsxResult:         widget.NewLabel(""),
+		xlsxResult:         xlsxResult,
+		xlsxResultCard:     xlsxResultCard,
 
 		sheetsInputFileLabel: widget.NewLabel("No file selected"),
 		sheetsRef:            widget.NewEntry(),
 		sheetsSheetID:        widget.NewEntry(),
 		sheetsFolderID:       widget.NewEntry(),
 		sheetsTitle:          widget.NewEntry(),
-		sheetsResult:         widget.NewLabel(""),
+		sheetsResult:         sheetsResult,
+		sheetsResultCard:     sheetsResultCard,
 	}
 
-	// Typing a ref clears any picked input file so only one source is active.
-	// Wired here rather than in the tab builders so the callbacks are
-	// available without needing a live Fyne display (important for tests).
-	u.xlsxRef.OnChanged = func(_ string) {
-		u.xlsxInputFileURI = nil
-		u.xlsxInputFileLabel.SetText("No file selected")
-	}
-	u.sheetsRef.OnChanged = func(_ string) {
-		u.sheetsInputFileURI = nil
-		u.sheetsInputFileLabel.SetText("No file selected")
-	}
+	// Hidden until a successful run populates them.
+	u.xlsxResultCard.Hide()
+	u.sheetsResultCard.Hide()
+
+	wireRefClearsFile(u.xlsxRef, &u.xlsxInputFileURI, u.xlsxInputFileLabel)
+	wireRefClearsFile(u.sheetsRef, &u.sheetsInputFileURI, u.sheetsInputFileLabel)
 
 	return u
+}
+
+// newResultCard creates the prominently-styled hyperlink and its containing
+// card used to display the output path or URL after a successful run.
+func newResultCard() (*widget.Hyperlink, *widget.Card) {
+	link := &widget.Hyperlink{
+		TextStyle: fyne.TextStyle{Bold: true},
+		SizeName:  theme.SizeNameSubHeadingText,
+	}
+	return link, widget.NewCard("Result", "", link)
+}
+
+// wireRefClearsFile registers an OnChanged callback on ref so that typing a
+// scripture reference resets any previously picked input file. This keeps the
+// two input sources mutually exclusive without requiring dialog callbacks.
+func wireRefClearsFile(ref *widget.Entry, fileURI *fyne.URI, label *widget.Label) {
+	ref.OnChanged = func(_ string) {
+		*fileURI = nil
+		label.SetText("No file selected")
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +147,7 @@ func (u *ui) excelTab() *container.TabItem {
 	u.xlsxTitle.SetPlaceHolder("optional title override")
 
 	inputFilePickerBtn := widget.NewButton("Pick input .txt file", func() {
-		u.showXLSXInputFilePicker()
+		u.showInputFilePicker(&u.xlsxInputFileURI, u.xlsxInputFileLabel, u.xlsxRef)
 	})
 	filePickerBtn := widget.NewButton("Pick existing .xlsx file", func() {
 		u.showXLSXFilePicker()
@@ -142,15 +166,18 @@ func (u *ui) excelTab() *container.TabItem {
 			{Text: "Selected file", Widget: u.xlsxFileLabel},
 			{Text: "New file folder", Widget: folderPickerBtn, HintText: "Create a new file in this folder"},
 			{Text: "Selected folder", Widget: u.xlsxFolderLabel},
-			{Text: "Result", Widget: u.xlsxResult},
 		},
 		OnSubmit: u.onXLSXSubmit,
 	}
 
-	return container.NewTabItem("Excel (.xlsx)", form)
+	content := container.NewVBox(form, u.xlsxResultCard)
+	return container.NewTabItem("Excel (.xlsx)", content)
 }
 
-func (u *ui) showXLSXInputFilePicker() {
+// showInputFilePicker opens a .txt file dialog. On selection it stores the URI,
+// updates the display label, and clears the ref entry so only one input source
+// is active at a time. Used by both the Excel and Google Sheets tabs.
+func (u *ui) showInputFilePicker(target *fyne.URI, label *widget.Label, ref *widget.Entry) {
 	fd := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
 		if err != nil {
 			dialog.ShowError(err, u.win)
@@ -159,10 +186,10 @@ func (u *ui) showXLSXInputFilePicker() {
 		if uc == nil {
 			return
 		}
-		u.xlsxInputFileURI = uc.URI()
-		u.xlsxInputFileLabel.SetText(uc.URI().Path())
+		*target = uc.URI()
+		label.SetText(uc.URI().Path())
 		// Clear the ref field so only one source is active.
-		u.xlsxRef.SetText("")
+		ref.SetText("")
 	}, u.win)
 	fd.SetFilter(storage.NewExtensionFileFilter([]string{".txt"}))
 	fd.Show()
@@ -274,7 +301,10 @@ func (u *ui) onXLSXSubmit() {
 				dialog.ShowError(err, u.win)
 				return
 			}
-			u.xlsxResult.SetText(path)
+			fileURL := &url.URL{Scheme: "file", Path: path}
+			u.xlsxResult.SetText(filepath.Base(path))
+			u.xlsxResult.SetURL(fileURL)
+			u.xlsxResultCard.Show()
 			dialog.ShowInformation("Done!", "Spreadsheet written to:\n"+path, u.win)
 		})
 	}()
@@ -291,7 +321,7 @@ func (u *ui) sheetsTab() *container.TabItem {
 	u.sheetsTitle.SetPlaceHolder("optional spreadsheet title")
 
 	inputFilePickerBtn := widget.NewButton("Pick input .txt file", func() {
-		u.showSheetsInputFilePicker()
+		u.showInputFilePicker(&u.sheetsInputFileURI, u.sheetsInputFileLabel, u.sheetsRef)
 	})
 
 	form := &widget.Form{
@@ -302,30 +332,12 @@ func (u *ui) sheetsTab() *container.TabItem {
 			{Text: "Sheet ID", Widget: u.sheetsSheetID, HintText: "Append to an existing sheet"},
 			{Text: "Folder ID", Widget: u.sheetsFolderID, HintText: "Create a new sheet in this folder"},
 			{Text: "Title", Widget: u.sheetsTitle},
-			{Text: "Result URL", Widget: u.sheetsResult},
 		},
 		OnSubmit: u.onSheetsSubmit,
 	}
 
-	return container.NewTabItem("Google Sheets", form)
-}
-
-func (u *ui) showSheetsInputFilePicker() {
-	fd := dialog.NewFileOpen(func(uc fyne.URIReadCloser, err error) {
-		if err != nil {
-			dialog.ShowError(err, u.win)
-			return
-		}
-		if uc == nil {
-			return
-		}
-		u.sheetsInputFileURI = uc.URI()
-		u.sheetsInputFileLabel.SetText(uc.URI().Path())
-		// Clear the ref field so only one source is active.
-		u.sheetsRef.SetText("")
-	}, u.win)
-	fd.SetFilter(storage.NewExtensionFileFilter([]string{".txt"}))
-	fd.Show()
+	content := container.NewVBox(form, u.sheetsResultCard)
+	return container.NewTabItem("Google Sheets", content)
 }
 
 func (u *ui) onSheetsSubmit() {
@@ -345,15 +357,20 @@ func (u *ui) onSheetsSubmit() {
 	prog.Show()
 
 	go func() {
-		url, err := u.runner.RunSheets(context.Background(), opts)
+		sheetURL, err := u.runner.RunSheets(context.Background(), opts)
 		fyne.Do(func() {
 			prog.Hide()
 			if err != nil {
 				dialog.ShowError(err, u.win)
 				return
 			}
-			u.sheetsResult.SetText(url)
-			dialog.ShowInformation("Done!", "Your sheet is ready:\n"+url, u.win)
+			// RunSheets only returns a non-error result when the URL is well-formed,
+			// so url.Parse will not fail here.
+			parsedURL, _ := url.Parse(sheetURL)
+			u.sheetsResult.SetText(sheetURL)
+			u.sheetsResult.SetURL(parsedURL)
+			u.sheetsResultCard.Show()
+			dialog.ShowInformation("Done!", "Your sheet is ready:\n"+sheetURL, u.win)
 		})
 	}()
 }
