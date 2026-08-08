@@ -34,7 +34,7 @@
     "@type": "SoftwareApplication",
     "name": "greeksheet",
     "applicationCategory": "UtilitiesApplication",
-    "operatingSystem": "macOS, Windows",
+    "operatingSystem": "macOS, Windows, Linux",
     "description": "Command-line tool that builds formatted Greek New Testament practice spreadsheets in Google Sheets or local Excel (.xlsx) files.",
     "url": "https://nathj07.github.io/greeksheet/",
     "downloadUrl": "https://github.com/nathj07/greeksheet/releases?q=v&expanded=true",
@@ -838,6 +838,7 @@
         <div class="platform-badges" aria-label="Supported platforms">
           <span class="badge">macOS</span>
           <span class="badge">Windows</span>
+          <span class="badge">Linux (build from source)</span>
         </div>
 
       </div>
@@ -984,6 +985,7 @@ greeksheet -output xlsx -ref "Philippians 1-4" -xlsx-file ~/study.xlsx</pre>
               <ul style="margin-block: .5rem; padding-left: 1.25rem;">
                 <li><strong>macOS:</strong> <code>~/Library/Application Support/greeksheet/token.json</code></li>
                 <li><strong>Windows:</strong> <code>%APPDATA%\greeksheet\token.json</code></li>
+                <li><strong>Linux:</strong> <code>~/.config/greeksheet/token.json</code></li>
               </ul>
               <p>The file is readable only by your user account (mode <code>0600</code>).</p>
             </div>
