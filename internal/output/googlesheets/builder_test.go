@@ -9,7 +9,7 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
-func TestBuildSheetData_headingRow(t *testing.T) {
+func TestBuildSheetDataHeadingRow(t *testing.T) {
 	sections := []document.Section{{Heading: "1 Corinthians 13"}}
 	d := buildSheetData(sections)
 
@@ -20,7 +20,7 @@ func TestBuildSheetData_headingRow(t *testing.T) {
 	assert.Len(t, d.textWrapReqs, 1)
 }
 
-func TestBuildSheetData_verseBlock(t *testing.T) {
+func TestBuildSheetDataVerseBlock(t *testing.T) {
 	sections := []document.Section{{Verses: []document.Verse{{Num: "1", Words: []string{"word", "two"}}}}}
 	d := buildSheetData(sections)
 
@@ -52,7 +52,7 @@ func TestBuildSheetData_verseBlock(t *testing.T) {
 	assert.Len(t, d.textWrapReqs, 1)
 }
 
-func TestBuildSheetData_verseBlock_singleWord(t *testing.T) {
+func TestBuildSheetDataVerseBlockSingleWord(t *testing.T) {
 	sections := []document.Section{{Verses: []document.Verse{{Num: "1", Words: []string{"λόγος"}}}}}
 	d := buildSheetData(sections)
 
@@ -70,7 +70,7 @@ func TestBuildSheetData_verseBlock_singleWord(t *testing.T) {
 // one whole-sheet vert-align and one whole-sheet wrap request, regardless of content. The range
 // must have no row or column bounds set — leaving all index fields at zero causes the Sheets API
 // to treat them as unbounded (they are omitted from the JSON payload).
-func TestBuildSheetData_wholeSheetFormattingRequests(t *testing.T) {
+func TestBuildSheetDataWholeSheetFormattingRequests(t *testing.T) {
 	sections := []document.Section{{Heading: "Romans 8"}}
 	d := buildSheetData(sections)
 
@@ -107,7 +107,7 @@ func TestTextNumberFormatReq(t *testing.T) {
 
 // TestPatchSheetID_patchesAllSlices confirms that patchSheetID rewrites the placeholder SheetId
 // in every formatting slice, including the newer alignVertReqs and textWrapReqs additions.
-func TestPatchSheetID_patchesAllSlices(t *testing.T) {
+func TestPatchSheetIDPatchesAllSlices(t *testing.T) {
 	d := buildSheetData([]document.Section{{Heading: "test"}})
 
 	// All formatting requests use SheetId: 0 as a placeholder before the real id is known.
@@ -122,7 +122,7 @@ func TestPatchSheetID_patchesAllSlices(t *testing.T) {
 
 // TestPatchSheetID_patchesColWidthReqs confirms that patchSheetID also rewrites SheetId in
 // colWidthReqs, which use UpdateDimensionProperties rather than RepeatCell.
-func TestPatchSheetID_patchesColWidthReqs(t *testing.T) {
+func TestPatchSheetIDPatchesColWidthReqs(t *testing.T) {
 	d := buildSheetData([]document.Section{{Verses: []document.Verse{{Num: "1", Words: []string{"word"}}}}})
 	require.NotEmpty(t, d.colWidthReqs)
 	require.Equal(t, int64(0), d.colWidthReqs[0].UpdateDimensionProperties.Range.SheetId)
@@ -153,7 +153,7 @@ func TestColWidthReq(t *testing.T) {
 //
 // "word" = 4 runes → max(4×9+16, 50) = 52 px
 // "two"  = 3 runes → max(3×9+16, 50) = 50 px
-func TestBuildSheetData_colWidthReqs_singleVerse(t *testing.T) {
+func TestBuildSheetDataColWidthReqsSingleVerse(t *testing.T) {
 	sections := []document.Section{{Verses: []document.Verse{{Num: "1", Words: []string{"word", "two"}}}}}
 	d := buildSheetData(sections)
 
@@ -178,7 +178,7 @@ func TestBuildSheetData_colWidthReqs_singleVerse(t *testing.T) {
 // verse 1: col 1="hello"(5), col 2="hi"(2)
 // verse 2: col 1="ok"(2),    col 2="world"(5)
 // Both columns: max = 5 runes → max(5×9+16, 50) = 61 px
-func TestBuildSheetData_colWidthReqs_maxAcrossVerses(t *testing.T) {
+func TestBuildSheetDataColWidthReqsMaxAcrossVerses(t *testing.T) {
 	sections := []document.Section{{Verses: []document.Verse{
 		{Num: "1", Words: []string{"hello", "hi"}},
 		{Num: "2", Words: []string{"ok", "world"}},
@@ -192,7 +192,7 @@ func TestBuildSheetData_colWidthReqs_maxAcrossVerses(t *testing.T) {
 
 // TestBuildSheetData_colWidthReqs_headingOnly confirms no width requests are generated when
 // there are no verse blocks (and therefore no word columns).
-func TestBuildSheetData_colWidthReqs_headingOnly(t *testing.T) {
+func TestBuildSheetDataColWidthReqsHeadingOnly(t *testing.T) {
 	sections := []document.Section{{Heading: "Chapter 1"}}
 	d := buildSheetData(sections)
 
@@ -204,7 +204,7 @@ func TestBuildSheetData_colWidthReqs_headingOnly(t *testing.T) {
 //
 // "λόγος" = 5 runes → max(5×9+16, 50) = 61 px
 // "ἦν"    = 2 runes → max(2×9+16, 50) = 50 px
-func TestBuildSheetData_colWidthReqs_greekWords(t *testing.T) {
+func TestBuildSheetDataColWidthReqsGreekWords(t *testing.T) {
 	sections := []document.Section{{Verses: []document.Verse{{Num: "1", Words: []string{"λόγος", "ἦν"}}}}}
 	d := buildSheetData(sections)
 
@@ -220,7 +220,7 @@ func TestBuildSheetData_colWidthReqs_greekWords(t *testing.T) {
 // verse 1: col 1="alpha"(5), col 2="bee"(3), col 3="ca"(2)
 // verse 2: col 1="do"(2),    col 2="elephant"(8)
 // col 1: max(5,2)=5 → 61 px;  col 2: max(3,8)=8 → 88 px;  col 3: max(2)=2 → 50 px
-func TestBuildSheetData_colWidthReqs_raggedVerses(t *testing.T) {
+func TestBuildSheetDataColWidthReqsRaggedVerses(t *testing.T) {
 	sections := []document.Section{{Verses: []document.Verse{
 		{Num: "1", Words: []string{"alpha", "bee", "ca"}},
 		{Num: "2", Words: []string{"do", "elephant"}},

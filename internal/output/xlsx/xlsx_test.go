@@ -38,7 +38,7 @@ func TestSanitiseSheetName(t *testing.T) {
 // Target.Render — creates a new file when the path does not exist
 // ---------------------------------------------------------------------------
 
-func TestRender_createsNewFile(t *testing.T) {
+func TestRenderCreatesNewFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "John 1.xlsx")
 	target := New(Options{File: path})
 
@@ -65,7 +65,7 @@ func TestRender_createsNewFile(t *testing.T) {
 	assert.Contains(t, f.GetSheetList(), "1.1-1.5", "colon in tab name should be replaced with period")
 }
 
-func TestRender_createsReadableXlsx(t *testing.T) {
+func TestRenderCreatesReadableXlsx(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test.xlsx")
 	target := New(Options{File: path})
 
@@ -101,7 +101,7 @@ func TestRender_createsReadableXlsx(t *testing.T) {
 // Target.Render — appends a tab to an existing file
 // ---------------------------------------------------------------------------
 
-func TestRender_appendsTabToExistingFile(t *testing.T) {
+func TestRenderAppendsTabToExistingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "study.xlsx")
 	target := New(Options{File: path})
 
@@ -139,7 +139,7 @@ func TestRender_appendsTabToExistingFile(t *testing.T) {
 // Target.Render — multiple tabs in one document
 // ---------------------------------------------------------------------------
 
-func TestRender_multipleTabsInDocument(t *testing.T) {
+func TestRenderMultipleTabsInDocument(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ephesians.xlsx")
 	target := New(Options{File: path})
 
@@ -173,7 +173,7 @@ func TestRender_multipleTabsInDocument(t *testing.T) {
 // Target.Render — error when File path is empty
 // ---------------------------------------------------------------------------
 
-func TestRender_errorsWithEmptyFilePath(t *testing.T) {
+func TestRenderErrorsWithEmptyFilePath(t *testing.T) {
 	target := New(Options{})
 	doc := document.Document{Title: "t", Tabs: []document.Tab{{Name: "t"}}}
 	_, err := target.Render(context.Background(), doc)

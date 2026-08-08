@@ -51,7 +51,7 @@ func TestValidateXlsxPath(t *testing.T) {
 // run() — xlsx path validation fires before fetching
 // ---------------------------------------------------------------------------
 
-func TestRun_xlsxDirectoryPathError(t *testing.T) {
+func TestRunXlsxDirectoryPathError(t *testing.T) {
 	err := run([]string{"greeksheet",
 		"-output", "xlsx",
 		"-ref", "John 1:1-14",
@@ -61,7 +61,7 @@ func TestRun_xlsxDirectoryPathError(t *testing.T) {
 	assert.ErrorContains(t, err, "is a directory")
 }
 
-func TestRun_xlsxMissingExtensionError(t *testing.T) {
+func TestRunXlsxMissingExtensionError(t *testing.T) {
 	err := run([]string{"greeksheet",
 		"-output", "xlsx",
 		"-ref", "John 1:1-14",

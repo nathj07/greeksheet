@@ -201,7 +201,7 @@ func TestSanitiseFilename(t *testing.T) {
 // mutually exclusive. The callbacks are wired in excelTab()/sheetsTab(), so we
 // call those methods on a headless ui to register them before firing OnChanged.
 
-func TestExcelTab_typingRefClearsInputFile(t *testing.T) {
+func TestExcelTabTypingRefClearsInputFile(t *testing.T) {
 	u := newUIForTest(&mockRunner{})
 
 	// Simulate a file having been picked first.
@@ -215,7 +215,7 @@ func TestExcelTab_typingRefClearsInputFile(t *testing.T) {
 	assert.Equal(t, "No file selected", u.xlsxInputFileLabel.Text)
 }
 
-func TestSheetsTab_typingRefClearsInputFile(t *testing.T) {
+func TestSheetsTabTypingRefClearsInputFile(t *testing.T) {
 	u := newUIForTest(&mockRunner{})
 
 	u.sheetsInputFileURI = fakeURI{path: "/tmp/verses.txt"}
@@ -261,12 +261,12 @@ func TestBuildSource(t *testing.T) {
 // return errors for the same empty-input scenarios the submit handlers would
 // encounter, providing the same coverage without touching the display layer.
 
-func TestXLSXSubmitValidationGate_emptyInputs_returnsError(t *testing.T) {
+func TestXLSXSubmitValidationGateEmptyInputsReturnsError(t *testing.T) {
 	err := validateXLSXInputs(XLSXOptions{})
 	require.Error(t, err)
 }
 
-func TestSheetsSubmitValidationGate_emptyInputs_returnsError(t *testing.T) {
+func TestSheetsSubmitValidationGateEmptyInputsReturnsError(t *testing.T) {
 	err := validateSheetsInputs(SheetsOptions{})
 	require.Error(t, err)
 }
@@ -278,7 +278,7 @@ func TestSheetsSubmitValidationGate_emptyInputs_returnsError(t *testing.T) {
 // handlers call the Runner in a goroutine with a live Fyne display, which
 // cannot run headlessly; these tests exercise the Runner directly.
 
-func TestMockRunner_RunXLSX_returnsPath(t *testing.T) {
+func TestMockRunnerRunXLSXReturnsPath(t *testing.T) {
 	runner := &mockRunner{}
 	opts := XLSXOptions{
 		Ref:      "John 1:1-14",
@@ -294,7 +294,7 @@ func TestMockRunner_RunXLSX_returnsPath(t *testing.T) {
 	runner.AssertExpectations(t)
 }
 
-func TestMockRunner_RunSheets_returnsURL(t *testing.T) {
+func TestMockRunnerRunSheetsReturnsURL(t *testing.T) {
 	runner := &mockRunner{}
 	opts := SheetsOptions{
 		Ref:   "Ephesians 1-6",
@@ -311,7 +311,7 @@ func TestMockRunner_RunSheets_returnsURL(t *testing.T) {
 	runner.AssertExpectations(t)
 }
 
-func TestMockRunner_RunXLSX_propagatesError(t *testing.T) {
+func TestMockRunnerRunXLSXPropagatesError(t *testing.T) {
 	runner := &mockRunner{}
 	opts := XLSXOptions{
 		Ref:      "John 1:1-14",
