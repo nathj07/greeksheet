@@ -37,7 +37,7 @@
     "operatingSystem": "macOS, Linux, Windows",
     "description": "Command-line tool that builds formatted Greek New Testament practice spreadsheets in Google Sheets or local Excel (.xlsx) files.",
     "url": "https://nathj07.github.io/greeksheet/",
-    "downloadUrl": "https://github.com/nathj07/greeksheet/releases/latest",
+    "downloadUrl": "https://github.com/nathj07/greeksheet/releases?q=v&expanded=true",
     "license": "https://opensource.org/licenses/MIT",
     "codeRepository": "https://github.com/nathj07/greeksheet",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
@@ -678,11 +678,20 @@
         </div>
 
         <div class="cta-group">
-          <a href="https://github.com/nathj07/greeksheet/releases/latest"
+          <!-- CLI release button. GitHub's release search is substring-based so q=v
+               also matches ui/v tags, but CLI releases dominate the results and
+               each release is clearly labelled by its tag. -->
+          <a href="https://github.com/nathj07/greeksheet/releases?q=v&expanded=true"
              class="btn-primary"
-             aria-label="Download latest release of greeksheet">
+             aria-label="Download latest CLI release of greeksheet">
             <span class="btn-icon" aria-hidden="true">⬇</span>
-            Download Latest Release
+            Download CLI Release
+          </a>
+          <a href="https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true"
+             class="btn-secondary"
+             aria-label="Download the GUI desktop app">
+            <span class="btn-icon" aria-hidden="true">🖥️</span>
+            Download GUI App
           </a>
           <a href="https://github.com/nathj07/greeksheet"
              class="btn-secondary"
@@ -702,6 +711,9 @@
             </button>
             <button class="run-tab" role="tab" id="tab-win" aria-selected="false" aria-controls="panel-win" tabindex="-1">
               🪟 Windows
+            </button>
+            <button class="run-tab" role="tab" id="tab-gui" aria-selected="false" aria-controls="panel-gui" tabindex="-1">
+              🖥️ GUI App
             </button>
           </div>
 
@@ -757,6 +769,34 @@
   -xlsx-file %USERPROFILE%\Desktop\john.xlsx</pre>
               </li>
             </ol>
+          </div>
+
+          <div id="panel-gui" role="tabpanel" aria-labelledby="tab-gui" class="run-panel" hidden>
+            <ol>
+              <li>
+                <strong>Download the GUI app</strong> from the
+                <a href="https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true">latest UI release</a>:
+                <ul style="margin-top:.4rem;padding-left:1.25rem;line-height:1.8;">
+                  <li><strong>macOS:</strong> download <code>greeksheetui-darwin-arm64.zip</code>,
+                      unzip it, and double-click <code>Greek Sheet UI.app</code></li>
+                  <li><strong>Windows:</strong> download and double-click
+                      <code>greeksheetui-windows-amd64.exe</code></li>
+                </ul>
+              </li>
+              <li>
+                <strong>Choose your output tab</strong> inside the app:
+                <em>Excel (.xlsx)</em> for a local file (no Google account needed) or
+                <em>Google Sheets</em> to write directly to your Drive.
+              </li>
+              <li>
+                <strong>Enter a scripture reference</strong> (e.g. <code>John 1:1-14</code>)
+                or pick a local <code>.txt</code> file, then click Submit.
+              </li>
+            </ol>
+            <p class="run-note">
+              macOS only: on first launch, open <em>System Settings → Privacy &amp; Security</em>
+              and click <strong>Open Anyway</strong>.
+            </p>
           </div>
         </div>
 
@@ -966,6 +1006,16 @@ greeksheet -ref "Philippians 1-4" -sheet-id &lt;ID from above&gt;</pre>
           </details>
 
           <details>
+            <summary>Is there a version without the command line?</summary>
+            <div class="faq-body">
+              <p>Yes — the GUI app provides the same Excel and Google Sheets output
+                 modes in a point-and-click desktop interface. Download it from the
+                 <a href="https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true">UI releases page</a>
+                 (tags starting with <code>ui/v</code>). No Terminal or Command Prompt needed.</p>
+            </div>
+          </details>
+
+          <details>
             <summary>What happens when my token expires?</summary>
             <div class="faq-body">
               <p>Google issues a refresh token alongside the access token. Access tokens
@@ -987,7 +1037,7 @@ greeksheet -ref "Philippians 1-4" -sheet-id &lt;ID from above&gt;</pre>
     <div class="container">
       <nav class="footer-links" aria-label="Footer links">
         <a href="https://github.com/nathj07/greeksheet">GitHub</a>
-        <a href="https://github.com/nathj07/greeksheet/releases/latest">Releases</a>
+        <a href="https://github.com/nathj07/greeksheet/releases?q=v&expanded=true">Releases</a>
         <a href="#demo">Demo</a>
         <a href="https://github.com/nathj07/greeksheet/blob/main/LICENSE">MIT Licence</a>
         <a href="https://github.com/nathj07/greeksheet/issues">Issues</a>

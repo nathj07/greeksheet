@@ -1,0 +1,120 @@
+name: UI Release
+
+on:
+  push:
+    tags:
+      - 'ui/v*'
+
+jobs:
+
+  # ── macOS (Apple Silicon) ──────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install fyne CLI
+        run: go install fyne.io/fyne/v2/cmd/fyne@v2.8.0
+
+      # Strip the "ui/v" prefix so appVersion receives a plain semver string,
+      # e.g. ui/v1.2.3 → 1.2.3.
+      - name: Extract version
+        id: ver
+        run: echo "val=${GITHUB_REF_NAME#ui/v}" >> "$GITHUB_OUTPUT"
+
+      # fyne package has no -ldflags flag of its own; GOFLAGS is the supported
+      # mechanism for passing linker flags through to the internal go build call.
+      # Credentials are stored as repository secrets — the same ones used by
+      # release.yml for the CLI binary.
+      - name: Package macOS app
+        env:
+          # The entire -ldflags value must be a single token; quoting it here
+          # keeps the -X arguments attached to -ldflags rather than treated as
+          # separate GOFLAGS entries.
+          GOFLAGS: "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }} -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+        run: |
+          fyne package \
+            -os darwin \
+            -sourceDir ./gui/greeksheetui \
+            -appID io.github.nathj07.greeksheetui \
+            -appVersion "${{ steps.ver.outputs.val }}" \
+            -appBuild "${{ github.run_number }}"
+          # The .app bundle lands in the repo root (CWD at invocation time).
+          # Zip it — GitHub Release artifacts must be single files, not directories.
+          zip -r "greeksheetui-darwin-arm64.zip" "Greek Sheet UI.app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifact
+          path: greeksheetui-darwin-arm64.zip
+
+  # ── Windows (amd64) ────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Fyne requires CGO on Windows. MinGW-w64 is pre-installed on the
+      # windows-latest runner at this path — adding it to PATH is all that's needed.
+      - name: Add MinGW to PATH
+        run: echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: pwsh
+
+      - name: Install fyne CLI
+        run: go install fyne.io/fyne/v2/cmd/fyne@v2.8.0
+
+      - name: Extract version
+        id: ver
+        run: |
+          $val = "${{ github.ref_name }}" -replace '^ui/v', ''
+          echo "val=$val" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Package Windows app
+        env:
+          GOARCH: amd64
+          GOFLAGS: "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }} -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+        run: |
+          fyne package `
+            -os windows `
+            -sourceDir ./gui/greeksheetui `
+            -appID io.github.nathj07.greeksheetui `
+            -appVersion "${{ steps.ver.outputs.val }}" `
+            -appBuild "${{ github.run_number }}"
+          # fyne package outputs "Greek Sheet UI.exe" (name from FyneApp.toml) in the
+          # repo root. Rename to the clean, space-free artifact name.
+          Move-Item "Greek Sheet UI.exe" "greeksheetui-windows-amd64.exe"
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifact
+          path: greeksheetui-windows-amd64.exe
+
+  # ── Create GitHub Release ──────────────────────────────────────────────────
+  # Only runs after both platform builds succeed.
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/macos-artifact/greeksheetui-darwin-arm64.zip
+            dist/windows-artifact/greeksheetui-windows-amd64.exe
+          generate_release_notes: true

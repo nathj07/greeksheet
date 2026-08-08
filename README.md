@@ -29,8 +29,27 @@ colour-coded rows, merged cells, column widths, and 12 pt font.
 
 ## Download
 
-Pre-built binaries for macOS (Apple Silicon) and Windows are attached to every
-[GitHub Release](https://github.com/nathj07/greeksheet/releases/latest).
+greeksheet comes in two flavours — pick the one that suits you:
+
+### GUI app (no command line needed)
+
+A desktop app with a point-and-click interface. Download from the
+[latest UI release](https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true)
+(tags prefixed `ui/v`):
+
+| Platform | File | Instructions |
+|----------|------|--------------|
+| macOS (Apple Silicon / M-series) | `greeksheetui-darwin-arm64.zip` | Unzip, then double-click `Greek Sheet UI.app` |
+| Windows | `greeksheetui-windows-amd64.exe` | Double-click to run |
+
+> **macOS security note:** On first launch, macOS may block the app.
+> Open *System Settings → Privacy & Security* and click **Open Anyway**.
+
+### CLI tool
+
+A command-line binary. Download from the
+[latest CLI release](https://github.com/nathj07/greeksheet/releases?q=v&expanded=true)
+(tags prefixed `v`):
 
 | Platform | File |
 |----------|------|
@@ -55,7 +74,7 @@ greeksheet-windows-amd64.exe [flags]
 
 ### Build from source
 
-If you prefer to compile yourself, you need Go 1.25 or later:
+If you prefer to compile yourself, you need Go 1.26 or later:
 
 ```bash
 go build -o greeksheet .
@@ -88,7 +107,7 @@ Generated using `./greeksheet -sheet-id <my-sheet-id> -ref "John 9:1-23"`, detai
 ## Prerequisites
 
 - A Google account *(only required for `-output sheets`)*
-- Go 1.25 or later *(only required if building from source)*
+- Go 1.26 or later *(only required if building from source)*
 
 ## Authentication (Google Sheets output only)
 
@@ -373,13 +392,27 @@ Done! Open your sheet at:
   https://docs.google.com/spreadsheets/d/<sheet-id>
 ```
 
+## GUI App
+
+`gui/greeksheetui` is a desktop front-end built with [Fyne](https://fyne.io/).
+It exposes the same two output modes — Excel and Google Sheets — in a
+point-and-click interface without requiring any command-line use.
+
+Pre-built releases are published under `ui/v*` tags; see [Download](#download) above.
+To build it locally you need a C compiler (Xcode CLT on macOS, MinGW on Windows)
+in addition to Go 1.26+:
+
+```bash
+go build ./gui/greeksheetui
+```
+
 ## Contributing
 
 Contributions are welcome. Here's what you need to know before opening a PR.
 
 ### Prerequisites
 
-- Go 1.25 or later
+- Go 1.26 or later
 - A Google OAuth client secret for local testing of the `sheets` output — see [Build from source](#build-from-source) and [Authentication](#authentication-google-sheets-output-only)
 
 ### Running tests locally
