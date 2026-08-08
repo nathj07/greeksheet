@@ -1,6 +1,6 @@
 # greeksheet
 
-A command-line tool that builds a formatted spreadsheet for Greek New Testament
+A tool that builds a formatted spreadsheet for Greek New Testament
 translation practice. It supports two **output** types and two **input** modes.
 
 ## Output types
