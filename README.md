@@ -102,7 +102,8 @@ greeksheet-windows-amd64.exe [flags]
 
 ### Build from source
 
-If you prefer to compile yourself, you need Go 1.26 or later:
+Pre-built binaries are provided for macOS and Windows. Linux users, or anyone
+who prefers to compile, need Go 1.26 or later:
 
 ```bash
 go build -o greeksheet .
@@ -144,8 +145,8 @@ tab opens asking you to sign in and approve the requested permissions. After you
 click **Allow**, the tab shows "Authentication successful — you can close this
 tab." and the tool continues automatically.
 
-The token is cached at `~/.config/greeksheet/token.json` (macOS:
-`~/Library/Application Support/greeksheet/token.json`). Every subsequent run
+The token is cached at `~/Library/Application Support/greeksheet/token.json`
+on macOS, or `%APPDATA%\greeksheet\token.json` on Windows. Every subsequent run
 is silent — no browser, no extra steps.
 
 > **Revoking access:** delete the token file above and the browser prompt will
