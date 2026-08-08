@@ -215,6 +215,23 @@ func TestExcelTabTypingRefClearsInputFile(t *testing.T) {
 	assert.Equal(t, "No file selected", u.xlsxInputFileLabel.Text)
 }
 
+// TestExcelTabClearingRefPreservesInputFile confirms that blanking the ref
+// entry (e.g. when showInputFilePicker calls ref.SetText("")) does not clear
+// a file that was just picked — the two inputs are mutually exclusive, but the
+// guard only fires when the user is actively typing a non-empty ref.
+func TestExcelTabClearingRefPreservesInputFile(t *testing.T) {
+	u := newUIForTest(&mockRunner{})
+
+	u.xlsxInputFileURI = fakeURI{path: "/tmp/verses.txt"}
+	u.xlsxInputFileLabel.SetText("/tmp/verses.txt")
+
+	// Clearing the ref entry (e.g. after picking a file) must NOT clear the URI.
+	u.xlsxRef.OnChanged("")
+
+	assert.Equal(t, fakeURI{path: "/tmp/verses.txt"}, u.xlsxInputFileURI)
+	assert.Equal(t, "/tmp/verses.txt", u.xlsxInputFileLabel.Text)
+}
+
 func TestSheetsTabTypingRefClearsInputFile(t *testing.T) {
 	u := newUIForTest(&mockRunner{})
 
@@ -225,6 +242,20 @@ func TestSheetsTabTypingRefClearsInputFile(t *testing.T) {
 
 	assert.Nil(t, u.sheetsInputFileURI)
 	assert.Equal(t, "No file selected", u.sheetsInputFileLabel.Text)
+}
+
+// TestSheetsTabClearingRefPreservesInputFile mirrors the Excel tab test for
+// the Sheets tab's wireRefClearsFile wiring.
+func TestSheetsTabClearingRefPreservesInputFile(t *testing.T) {
+	u := newUIForTest(&mockRunner{})
+
+	u.sheetsInputFileURI = fakeURI{path: "/tmp/verses.txt"}
+	u.sheetsInputFileLabel.SetText("/tmp/verses.txt")
+
+	u.sheetsRef.OnChanged("")
+
+	assert.Equal(t, fakeURI{path: "/tmp/verses.txt"}, u.sheetsInputFileURI)
+	assert.Equal(t, "/tmp/verses.txt", u.sheetsInputFileLabel.Text)
 }
 
 // ---------------------------------------------------------------------------
@@ -248,6 +279,9 @@ func TestBuildSource(t *testing.T) {
 	t.Run("input_file_returns_non_nil_source", func(t *testing.T) { f("", "/tmp/verses.txt", "") })
 	t.Run("both_empty_returns_error", func(t *testing.T) {
 		f("", "", "either a scripture reference or an input file must be provided")
+	})
+	t.Run("both_provided_returns_error", func(t *testing.T) {
+		f("John 1:1-14", "/tmp/verses.txt", "mutually exclusive")
 	})
 }
 
