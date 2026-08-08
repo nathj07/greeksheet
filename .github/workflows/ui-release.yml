@@ -51,6 +51,12 @@ jobs:
             --app-id io.github.nathj07.greeksheetui \
             --app-version "${{ steps.ver.outputs.val }}" \
             --app-build "${{ github.run_number }}"
+          # Strip the com.apple.quarantine extended attribute that macOS sets on
+          # files created by the build tools. Without this, Gatekeeper treats the
+          # downloaded (unnotarized) bundle as "damaged" on macOS 13+ and refuses
+          # to open it entirely, rather than showing the softer "unidentified
+          # developer" prompt with an "Open Anyway" option.
+          xattr -cr "Greek Sheet UI.app"
           zip -r "greeksheetui-darwin-arm64.zip" "Greek Sheet UI.app"
 
       - uses: actions/upload-artifact@v4
@@ -99,6 +105,17 @@ jobs:
 
       - name: Package Windows app
         run: |
+          # fyne package always rebuilds on Windows (to embed icon + manifest as a
+          # .syso resource). It reads -ldflags= tokens from GOFLAGS and merges them
+          # with its own flags (including -H=windowsgui), so credentials survive the
+          # rebuild and no console window appears on launch.
+          #
+          # GOFLAGS is set inline here rather than via the env: block because the
+          # two -X flags each contain a space, and the YAML >- scalar would split
+          # them into separate tokens that fyne's GOFLAGS parser cannot reassemble.
+          $cid = "${{ secrets.GOOGLE_CLIENT_ID }}"
+          $csec = "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          $env:GOFLAGS = "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=$cid -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=$csec"
           fyne package `
             --os windows `
             --src ./gui/greeksheetui `

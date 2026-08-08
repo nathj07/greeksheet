@@ -72,6 +72,13 @@ chmod +x greeksheet-darwin-arm64
 greeksheet-windows-amd64.exe [flags]
 ```
 
+> **Windows security note:** Some antivirus tools may flag this binary as
+> suspicious. This is a known false positive: Go binaries are statically linked
+> and have an unusual PE structure that triggers heuristic AV scanners, even
+> when the binary is completely safe. The binary is unsigned (no Authenticode
+> certificate), which makes the false positive more likely. If your AV
+> quarantines the file, add an exception for it.
+
 ### Build from source
 
 If you prefer to compile yourself, you need Go 1.26 or later:
