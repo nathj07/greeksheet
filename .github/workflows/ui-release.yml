@@ -18,7 +18,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Install fyne CLI
-        run: go install fyne.io/fyne/v2/cmd/fyne@v2.8.0
+        run: go install fyne.io/tools/cmd/fyne@latest
 
       # Strip the "ui/v" prefix so appVersion receives a plain semver string,
       # e.g. ui/v1.2.3 → 1.2.3.
@@ -26,25 +26,31 @@ jobs:
         id: ver
         run: echo "val=${GITHUB_REF_NAME#ui/v}" >> "$GITHUB_OUTPUT"
 
-      # fyne package has no -ldflags flag of its own; GOFLAGS is the supported
-      # mechanism for passing linker flags through to the internal go build call.
-      # Credentials are stored as repository secrets — the same ones used by
-      # release.yml for the CLI binary.
-      - name: Package macOS app
+      # Build the binary first using go build -ldflags, which handles multiple
+      # -X flags correctly. This avoids passing ldflags through GOFLAGS (which
+      # fyne's internal strings.Fields parser splits incorrectly on spaces).
+      # The >- YAML scalar folds the two lines into one space-separated string,
+      # identical to the pattern used in release.yml for the CLI binary.
+      - name: Build macOS binary
         env:
-          # The entire -ldflags value must be a single token; quoting it here
-          # keeps the -X arguments attached to -ldflags rather than treated as
-          # separate GOFLAGS entries.
-          GOFLAGS: "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }} -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          LDFLAGS: >-
+            -X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
+            -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: go build -ldflags "$LDFLAGS" -o greeksheetui-bin ./gui/greeksheetui
+
+      # fyne package --executable takes the pre-built binary and wraps it into
+      # a .app bundle (icon, Info.plist) without running go build again, so
+      # GOFLAGS is never consulted. The .app lands in the repo root (the CWD at
+      # invocation time, before fyne internally chdir-s into --src).
+      - name: Package macOS app
         run: |
           fyne package \
-            -os darwin \
-            -sourceDir ./gui/greeksheetui \
-            -appID io.github.nathj07.greeksheetui \
-            -appVersion "${{ steps.ver.outputs.val }}" \
-            -appBuild "${{ github.run_number }}"
-          # The .app bundle lands in the repo root (CWD at invocation time).
-          # Zip it — GitHub Release artifacts must be single files, not directories.
+            --os darwin \
+            --src ./gui/greeksheetui \
+            --executable ./greeksheetui-bin \
+            --app-id io.github.nathj07.greeksheetui \
+            --app-version "${{ steps.ver.outputs.val }}" \
+            --app-build "${{ github.run_number }}"
           zip -r "greeksheetui-darwin-arm64.zip" "Greek Sheet UI.app"
 
       - uses: actions/upload-artifact@v4
@@ -69,7 +75,7 @@ jobs:
         shell: pwsh
 
       - name: Install fyne CLI
-        run: go install fyne.io/fyne/v2/cmd/fyne@v2.8.0
+        run: go install fyne.io/tools/cmd/fyne@latest
 
       - name: Extract version
         id: ver
@@ -78,20 +84,30 @@ jobs:
           echo "val=$val" >> $env:GITHUB_OUTPUT
         shell: pwsh
 
-      - name: Package Windows app
+      # Pre-build into srcDir so that fyne package --executable finds the binary
+      # in the same directory it chdir-s into. fyne package on Windows always
+      # rebuilds (to embed icon/.syso) and renames the output relative to srcDir,
+      # so placing the exe there avoids cross-directory rename failures.
+      - name: Build Windows binary
         env:
           GOARCH: amd64
-          GOFLAGS: "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }} -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          LDFLAGS: >-
+            -X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
+            -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
+        run: go build -ldflags "$env:LDFLAGS" -o ./gui/greeksheetui/greeksheetui-tmp.exe ./gui/greeksheetui
+        shell: pwsh
+
+      - name: Package Windows app
         run: |
           fyne package `
-            -os windows `
-            -sourceDir ./gui/greeksheetui `
-            -appID io.github.nathj07.greeksheetui `
-            -appVersion "${{ steps.ver.outputs.val }}" `
-            -appBuild "${{ github.run_number }}"
-          # fyne package outputs "Greek Sheet UI.exe" (name from FyneApp.toml) in the
-          # repo root. Rename to the clean, space-free artifact name.
-          Move-Item "Greek Sheet UI.exe" "greeksheetui-windows-amd64.exe"
+            --os windows `
+            --src ./gui/greeksheetui `
+            --executable ./gui/greeksheetui/greeksheetui-tmp.exe `
+            --app-id io.github.nathj07.greeksheetui `
+            --app-version "${{ steps.ver.outputs.val }}" `
+            --app-build "${{ github.run_number }}"
+          # fyne package renames the output to "Greek Sheet UI.exe" inside srcDir.
+          Move-Item ".\gui\greeksheetui\Greek Sheet UI.exe" "greeksheetui-windows-amd64.exe"
         shell: pwsh
 
       - uses: actions/upload-artifact@v4
