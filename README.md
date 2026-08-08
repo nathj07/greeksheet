@@ -60,11 +60,7 @@ A desktop app with a point-and-click interface. Download from the
 > quarantines the file, add an exception for it.
 > For example, Windows Defender may show *"Windows protected your PC"* 
 > — click **More info → Run anyway** to continue.
->
-> 
-> **Windows running note:** 
-> You may see a command prompt behind the UI window, this is normal and can be ignored. 
-> It is used to log errors and debug information. I am working on removing it in a future release.
+
 
 ### CLI tool
 
