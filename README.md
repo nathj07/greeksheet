@@ -58,6 +58,9 @@ A desktop app with a point-and-click interface. Download from the
 > when the binary is completely safe. The binary is unsigned (no Authenticode
 > certificate), which makes the false positive more likely. If your AV
 > quarantines the file, add an exception for it.
+> For example, Windows Defender may show *"Windows protected your PC"* 
+> — click **More info → Run anyway** to continue.
+>
 > 
 > **Windows running note:** 
 > You may see a command prompt behind the UI window, this is normal and can be ignored. 
