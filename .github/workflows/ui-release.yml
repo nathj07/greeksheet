@@ -81,7 +81,7 @@ jobs:
       - name: Package Windows app
         env:
           GOARCH: amd64
-          GOFLAGS: "-ldflags=-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }} -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          GOFLAGS: "-ldflags='-X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }} -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}'"
         run: |
           fyne package `
             -os windows `
