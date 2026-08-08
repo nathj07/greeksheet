@@ -371,9 +371,11 @@ func (u *ui) onSheetsSubmit() {
 				dialog.ShowError(err, u.win)
 				return
 			}
-			// RunSheets only returns a non-error result when the URL is well-formed,
-			// so url.Parse will not fail here.
-			parsedURL, _ := url.Parse(sheetURL)
+			parsedURL, parseErr := url.Parse(sheetURL)
+			if parseErr != nil {
+				dialog.ShowError(parseErr, u.win)
+				return
+			}
 			u.sheetsResult.SetText(sheetURL)
 			u.sheetsResult.SetURL(parsedURL)
 			u.sheetsResultCard.Show()
