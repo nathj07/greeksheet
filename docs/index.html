@@ -242,6 +242,18 @@
 
     .btn-icon { font-size: 1.1em; }
 
+    /* Track labels above each row of download buttons ("CLI tool" / "GUI App") */
+    .download-label {
+      width: 100%;
+      margin: 0 0 .2rem;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--green);
+      text-align: center;
+    }
+
     /* Platform badges */
     .platform-badges {
       display: flex;
@@ -678,29 +690,54 @@
         </div>
 
         <div class="cta-group">
-          <!-- CLI release button. GitHub's release search is substring-based so q=v
-               also matches ui/v tags, but CLI releases dominate the results and
-               each release is clearly labelled by its tag. -->
-          <a href="https://github.com/nathj07/greeksheet/releases?q=v&expanded=true"
+
+          <!-- CLI buttons. hrefs are fallbacks; the download script below
+               replaces them with direct asset URLs once the API responds. -->
+          <p class="download-label">CLI tool</p>
+          <a id="dl-cli-mac"
+             href="https://github.com/nathj07/greeksheet/releases?q=v&expanded=true"
              class="btn-primary"
-             aria-label="Download latest CLI release of greeksheet">
+             download
+             aria-label="Download CLI for macOS (Apple Silicon)">
             <span class="btn-icon" aria-hidden="true">⬇</span>
-            Download CLI Release
+            macOS (Apple Silicon)
           </a>
-          <a href="https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true"
+          <a id="dl-cli-win"
+             href="https://github.com/nathj07/greeksheet/releases?q=v&expanded=true"
+             class="btn-primary"
+             download
+             aria-label="Download CLI for Windows">
+            <span class="btn-icon" aria-hidden="true">⬇</span>
+            Windows
+          </a>
+
+          <!-- GUI buttons -->
+          <p class="download-label" style="margin-top:.75rem">GUI App</p>
+          <a id="dl-gui-mac"
+             href="https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true"
              class="btn-secondary"
-             aria-label="Download the GUI desktop app">
+             aria-label="Download GUI app for macOS (Apple Silicon)">
             <span class="btn-icon" aria-hidden="true">🖥️</span>
-            Download GUI App
+            macOS (Apple Silicon)
           </a>
+          <a id="dl-gui-win"
+             href="https://github.com/nathj07/greeksheet/releases?q=ui%2Fv&expanded=true"
+             class="btn-secondary"
+             aria-label="Download GUI app for Windows">
+            <span class="btn-icon" aria-hidden="true">🖥️</span>
+            Windows
+          </a>
+
           <a href="https://github.com/nathj07/greeksheet"
              class="btn-secondary"
+             style="width:100%;justify-content:center;margin-top:.25rem"
              aria-label="View greeksheet source code on GitHub">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
               <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"/>
             </svg>
             View on GitHub
           </a>
+
         </div>
 
         <!-- Run instructions: tabbed box for Mac and Windows -->
@@ -1083,6 +1120,82 @@ greeksheet -ref "Philippians 1-4" -sheet-id &lt;ID from above&gt;</pre>
         }
       });
     });
+  </script>
+
+  <script>
+    // ── Dynamic download buttons ───────────────────────────────────────────────
+    // Fetches the GitHub Releases API to find the latest CLI (v*) and GUI
+    // (ui/v*) releases, then updates the four download button hrefs to direct
+    // asset download URLs. Buttons start pointing at the filtered Releases pages
+    // as a graceful fallback; this script upgrades them once the API responds.
+    (async function () {
+      const REPO = 'nathj07/greeksheet';
+
+      // Maps each button ID to the release asset filename it should download.
+      const WANT = {
+        'dl-cli-mac': 'greeksheet-darwin-arm64',
+        'dl-cli-win': 'greeksheet-windows-amd64.exe',
+        'dl-gui-mac': 'greeksheetui-darwin-arm64.zip',
+        'dl-gui-win': 'greeksheetui-windows-amd64.exe',
+      };
+
+      try {
+        // Fetch up to 20 releases (newest first). With infrequent releases this
+        // is always enough to find the latest of both tracks in one request.
+        const res = await fetch(
+          `https://api.github.com/repos/${REPO}/releases?per_page=20`,
+          { headers: { Accept: 'application/vnd.github+json' } }
+        );
+        if (!res.ok) return; // silently keep the fallback Releases page links
+
+        const releases = await res.json();
+
+        // Find the most recent published release for each track separately.
+        // CLI tags match /^v\d/ (e.g. v1.5.1) to exclude ui/v* tags which also
+        // contain the letter 'v'.
+        let cliRelease = null;
+        let guiRelease = null;
+        for (const r of releases) {
+          if (r.draft || r.prerelease) continue;
+          if (!cliRelease && /^v\d/.test(r.tag_name)) cliRelease = r;
+          if (!guiRelease && r.tag_name.startsWith('ui/v')) guiRelease = r;
+          if (cliRelease && guiRelease) break;
+        }
+
+        // Build a flat map of asset filename → browser_download_url.
+        const urlByName = {};
+        for (const r of [cliRelease, guiRelease]) {
+          if (!r) continue;
+          for (const asset of r.assets) {
+            urlByName[asset.name] = asset.browser_download_url;
+          }
+        }
+
+        // Update each button href and append a version badge.
+        for (const [id, filename] of Object.entries(WANT)) {
+          const url = urlByName[filename];
+          if (!url) continue;
+          const el = document.getElementById(id);
+          if (!el) continue;
+
+          el.href = url;
+
+          // Append the release tag as a small inline version badge so users
+          // can see exactly which version the button will download.
+          const release = filename.startsWith('greeksheet-') ? cliRelease : guiRelease;
+          if (release) {
+            const badge = document.createElement('span');
+            badge.textContent = release.tag_name;
+            badge.style.cssText =
+              'margin-left:.4rem;font-size:.73rem;font-weight:400;opacity:.75;';
+            el.appendChild(badge);
+          }
+        }
+      } catch (_) {
+        // Network error or unexpected response — buttons remain pointing at the
+        // Releases pages. No error surface needed; fallback works fine.
+      }
+    })();
   </script>
 </body>
 </html>
