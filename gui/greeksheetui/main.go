@@ -304,7 +304,11 @@ func (u *ui) onXLSXSubmit() {
 				dialog.ShowError(err, u.win)
 				return
 			}
-			fileURL := &url.URL{Scheme: "file", Path: path}
+			p := filepath.ToSlash(path)
+			if !strings.HasPrefix(p, "/") {
+				p = "/" + p
+			}
+			fileURL := &url.URL{Scheme: "file", Path: p}
 			u.xlsxResult.SetText(filepath.Base(path))
 			u.xlsxResult.SetURL(fileURL)
 			u.xlsxResultCard.Show()
