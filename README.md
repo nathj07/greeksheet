@@ -141,8 +141,8 @@ tab opens asking you to sign in and approve the requested permissions. After you
 click **Allow**, the tab shows "Authentication successful — you can close this
 tab." and the tool continues automatically.
 
-The token is cached at `~/Library/Application Support/greeksheet/token.json`
-on macOS, or `%APPDATA%\greeksheet\token.json` on Windows. Every subsequent run
+The token is cached at `$XDG_CONFIG_HOME/greeksheet/token.json` on Linux (typically `~/.config/greeksheet/token.json`),
+`~/Library/Application Support/greeksheet/token.json` on macOS, or `%APPDATA%\greeksheet\token.json` on Windows. Every subsequent run
 is silent — no browser, no extra steps.
 
 > **Revoking access:** delete the token file above and the browser prompt will
