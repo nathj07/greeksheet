@@ -1,6 +1,11 @@
 # Runs build, vet, and tests on every push to main and every PR targeting main.
 # The job name "test" is what you register as a required status check under
 # Settings → Branches → Branch protection rules.
+#
+# gui/greeksheetui is intentionally excluded from ./... here. It depends on
+# Fyne, which requires OpenGL and Wayland/X11 system headers that are not
+# present on ubuntu-latest. The GUI package is built and tested by
+# ui-release.yml on a native macos-latest runner instead.
 name: CI
 
 on:
@@ -20,10 +25,10 @@ jobs:
           go-version-file: go.mod
 
       - name: Build
-        run: go build ./...
+        run: go build ./cmd/... ./internal/...
 
       - name: Vet
-        run: go vet ./...
+        run: go vet ./cmd/... ./internal/...
 
       - name: Test
-        run: go test ./...
+        run: go test ./cmd/... ./internal/...
