@@ -55,7 +55,7 @@ A desktop app with a point-and-click interface. Download from the
 > **Windows security note:** Some antivirus tools may flag this binary as
 > suspicious. This is a known false positive: Go binaries are statically linked
 > and have an unusual PE structure that triggers heuristic AV scanners, even
-> when the binary is completely safe. The binary is unsigned (no Authenticode
+> when the binary is benign. The binary is unsigned (no Authenticode
 > certificate), which makes the false positive more likely. If your AV
 > quarantines the file, add an exception for it.
 > For example, Windows Defender may show *"Windows protected your PC"* 
