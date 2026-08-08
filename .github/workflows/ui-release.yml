@@ -96,10 +96,17 @@ jobs:
       # in the same directory it chdir-s into. fyne package on Windows always
       # rebuilds (to embed icon/.syso) and renames the output relative to srcDir,
       # so placing the exe there avoids cross-directory rename failures.
+      #
+      # -H=windowsgui sets the PE subsystem to WINDOWS, which suppresses the
+      # console window that would otherwise appear when a user double-clicks the
+      # exe. fyne package also injects this flag during its internal rebuild, but
+      # we add it here as a belt-and-suspenders measure: if fyne's GOFLAGS parsing
+      # ever regresses again the pre-built binary already has the correct subsystem.
       - name: Build Windows binary
         env:
           GOARCH: amd64
           LDFLAGS: >-
+            -H=windowsgui
             -X github.com/nathj07/greeksheet/internal/auth.embeddedClientID=${{ secrets.GOOGLE_CLIENT_ID }}
             -X github.com/nathj07/greeksheet/internal/auth.embeddedClientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: go build -ldflags "$env:LDFLAGS" -o ./gui/greeksheetui/greeksheetui-tmp.exe ./gui/greeksheetui
