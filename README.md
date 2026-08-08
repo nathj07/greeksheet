@@ -51,6 +51,17 @@ A desktop app with a point-and-click interface. Download from the
 > ```
 > xattr -cr "/Applications/Greek Sheet UI.app"
 > ```
+> 
+> **Windows security note:** Some antivirus tools may flag this binary as
+> suspicious. This is a known false positive: Go binaries are statically linked
+> and have an unusual PE structure that triggers heuristic AV scanners, even
+> when the binary is completely safe. The binary is unsigned (no Authenticode
+> certificate), which makes the false positive more likely. If your AV
+> quarantines the file, add an exception for it.
+> 
+> **Windows running note:** 
+> You may see a command prompt behind the UI window, this is normal and can be ignored. 
+> It is used to log errors and debug information. I am working on removing it in a future release.
 
 ### CLI tool
 
