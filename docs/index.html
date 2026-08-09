@@ -522,7 +522,7 @@
 
     /* ── Run instructions ─────────────────────────────────────────── */
     .run-box {
-      max-width: 600px;
+      max-width: 800px;
       margin-inline: auto;
       margin-bottom: 2rem;
       border: 1px solid var(--border);
@@ -612,6 +612,35 @@
       font-size: .85rem;
       color: var(--text-muted);
       line-height: 1.5;
+    }
+
+    /* ── GUI screenshots ─────────────────────────────────────────── */
+    .ui-screenshots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-top: 1.25rem;
+    }
+
+    .ui-screenshot-item {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+
+    .ui-screenshot-item img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .ui-screenshot-item figcaption {
+      font-size: .8rem;
+      color: var(--text-muted);
+      text-align: center;
     }
 
     /* ── Demo ────────────────────────────────────────────────────── */
@@ -832,6 +861,20 @@
               macOS only: on first launch, open <em>System Settings → Privacy &amp; Security</em>
               and click <strong>Open Anyway</strong>.
             </p>
+            <figure class="ui-screenshots" aria-label="GUI app screenshots">
+              <div class="ui-screenshot-item">
+                <img src="images/screenshot-ui-excel.png"
+                     alt="Greek Sheet UI showing the Excel (.xlsx) tab: fields for scripture reference, optional input file, title, existing .xlsx file to append to, and folder for a new file."
+                     width="560" height="480" loading="lazy" decoding="async">
+                <figcaption>Excel (.xlsx) tab</figcaption>
+              </div>
+              <div class="ui-screenshot-item">
+                <img src="images/screenshot-ui-sheets.png"
+                     alt="Greek Sheet UI showing the Google Sheets tab: fields for scripture reference, optional input file, optional sheet ID to append to, Google Drive folder ID, and title."
+                     width="560" height="428" loading="lazy" decoding="async">
+                <figcaption>Google Sheets tab</figcaption>
+              </div>
+            </figure>
           </div>
         </div>
 
